@@ -17,12 +17,16 @@ const DEFAULT_MESSAGE: &str = "Hello";
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Contract {
     message: String,
+    on_loan: bool,
 }
 
 // Define the default, which automatically initializes the contract
-impl Default for Contract{
-    fn default() -> Self{
-        Self{message: DEFAULT_MESSAGE.to_string()}
+impl Default for Contract {
+    fn default() -> Self {
+        Self {
+            message: DEFAULT_MESSAGE.to_string(),
+            on_loan: false,
+        }
     }
 }
 
@@ -40,6 +44,21 @@ impl Contract {
         log!("Saving greeting {}", message);
         self.message = message;
     }
+
+    // 貸出中かどうかを取得
+    pub fn is_on_loan(&self) -> bool {
+        return self.on_loan;
+    }
+
+    // 貸出状態を変更する
+    pub fn change_loan_state(&mut self) {
+        let pre_state = self.on_loan;
+        self.on_loan = match self.on_loan {
+            true => false,
+            false => true,
+        };
+        log!("change_loan_state {} => {}", pre_state, self.on_loan);
+    }
 }
 
 /*
@@ -51,22 +70,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_default_greeting() {
+    fn get_default_contract() {
         let contract = Contract::default();
         // this test did not call set_greeting so should return the default "Hello" greeting
-        assert_eq!(
-            contract.get_greeting(),
-            "Hello".to_string()
-        );
+        assert_eq!(contract.get_greeting(), "Hello".to_string());
+        // 貸出中ではないはず
+        assert!(!contract.on_loan);
     }
 
     #[test]
     fn set_then_get_greeting() {
         let mut contract = Contract::default();
         contract.set_greeting("howdy".to_string());
-        assert_eq!(
-            contract.get_greeting(),
-            "howdy".to_string()
-        );
+        assert_eq!(contract.get_greeting(), "howdy".to_string());
+    }
+
+    #[test]
+    fn change_then_get_loan_state() {
+        let mut contract = Contract::default();
+        assert!(!contract.on_loan);
+        contract.change_loan_state();
+        assert!(contract.on_loan);
+        contract.change_loan_state();
+        assert!(!contract.on_loan);
     }
 }
