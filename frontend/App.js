@@ -3,7 +3,7 @@ import React from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -25,6 +25,10 @@ export default function App() {
       get_greeting()
         .then(greetingFromContract => {
           setGreeting(greetingFromContract)
+        })
+      get_bikes()
+        .then(bikesFromContract => {
+          console.log(bikesFromContract)
         })
     },
 

@@ -8,17 +8,22 @@
 
 // TODO: プロジェクトの名前を変える
 
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::{log, near_bindgen};
+use near_sdk::{
+    borsh::{self, BorshDeserialize, BorshSerialize},
+    log, near_bindgen,
+    serde::{Deserialize, Serialize},
+};
 
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
 // バイクの数
 const NUMBER_OF_BIKES: usize = 5;
 
-#[near_bindgen]
-#[derive(Clone, Copy, PartialEq, Debug, BorshDeserialize, BorshSerialize)]
-enum State {
+#[derive(
+    BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, Copy, Clone, PartialEq,
+)]
+#[serde(crate = "near_sdk::serde")]
+pub enum State {
     Available,
     InUse,
     Cleaning,
@@ -27,45 +32,6 @@ enum State {
 impl Default for State {
     fn default() -> Self {
         State::Available
-    }
-}
-
-#[near_bindgen]
-impl State {
-    // 使用可能かどうか
-    fn available(&self) -> bool {
-        *self == State::Available
-    }
-
-    // 使用中かどうか
-    fn in_use(&self) -> bool {
-        *self == State::InUse
-    }
-
-    // 清掃中かどうか
-    fn cleaning(&self) -> bool {
-        *self == State::Cleaning
-    }
-
-    // バイクを使用
-    fn use_bike(&mut self) {
-        if self.available() {
-            *self = State::InUse;
-        }
-    }
-
-    // バイクを返却
-    fn return_bike(&mut self) {
-        if self.in_use() || self.cleaning() {
-            *self = State::Available;
-        }
-    }
-
-    // バイクを清掃
-    fn clean_bike(&mut self) {
-        if self.available() {
-            *self = State::Cleaning;
-        }
     }
 }
 
@@ -102,17 +68,41 @@ impl Contract {
         self.message = message;
     }
 
-    // TODO: 直接enum側が呼べるならそっちの方がいい
+    pub fn get_bikes(&self) -> &[State; NUMBER_OF_BIKES] {
+        &self.bikes
+    }
+
+    // 使用可能かどうか
+    fn available(&self, number: usize) -> bool {
+        self.bikes[number] == State::Available
+    }
+
+    // 使用中かどうか
+    fn in_use(&self, number: usize) -> bool {
+        self.bikes[number] == State::InUse
+    }
+
+    // 清掃中かどうか
+    fn cleaning(&self, number: usize) -> bool {
+        self.bikes[number] == State::Cleaning
+    }
+
     pub fn use_bike(&mut self, number: usize) {
-        self.bikes[number].use_bike()
+        if self.available(number) {
+            self.bikes[number] = State::InUse;
+        }
     }
 
     pub fn return_bike(&mut self, number: usize) {
-        self.bikes[number].return_bike()
+        if self.in_use(number) || self.cleaning(number) {
+            self.bikes[number] = State::Available;
+        }
     }
 
     pub fn clean_bike(&mut self, number: usize) {
-        self.bikes[number].clean_bike()
+        if self.available(number) {
+            self.bikes[number] = State::Cleaning;
+        }
     }
 }
 
@@ -146,19 +136,19 @@ mod tests {
         let mut contract = Contract::default();
         let test_number = 1;
         assert_eq!(contract.bikes[test_number], State::Available);
-        contract.bikes[test_number].use_bike();
+        contract.use_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::InUse);
-        contract.bikes[test_number].use_bike();
+        contract.use_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::InUse);
-        contract.bikes[test_number].return_bike();
+        contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::Available);
-        contract.bikes[test_number].return_bike();
+        contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::Available);
-        contract.bikes[test_number].clean_bike();
+        contract.clean_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::Cleaning);
-        contract.bikes[test_number].use_bike();
+        contract.use_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::Cleaning);
-        contract.bikes[test_number].return_bike();
+        contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], State::Available);
     }
 }
