@@ -26,9 +26,9 @@ export async function initContract() {
     nearConfig.contractName,
     {
       // View methods are read only. They don't modify the state, but usually return some value.
-      viewMethods: ["get_greeting"],
+      viewMethods: ["get_greeting", "is_on_loan"],
       // Change methods can modify the state. But you don't receive the returned value when called.
-      changeMethods: ["set_greeting"],
+      changeMethods: ["set_greeting", "change_loan_state"],
     }
   );
 }
@@ -47,6 +47,16 @@ export function login() {
   window.walletConnection.requestSignIn(nearConfig.contractName);
 }
 
+export async function get_greeting() {
+  let greeting = await window.contract.get_greeting();
+  return greeting;
+}
+
+export async function is_on_loan() {
+  let is_on_loan = await window.contract.is_on_loan();
+  return is_on_loan;
+}
+
 export async function set_greeting(message) {
   let response = await window.contract.set_greeting({
     args: { message: message },
@@ -54,7 +64,6 @@ export async function set_greeting(message) {
   return response;
 }
 
-export async function get_greeting() {
-  let greeting = await window.contract.get_greeting();
-  return greeting;
+export async function change_loan_state() {
+  await window.contract.change_loan_state();
 }
