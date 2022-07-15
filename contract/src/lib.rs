@@ -12,6 +12,7 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     log, near_bindgen,
     serde::{Deserialize, Serialize},
+    AccountId,
 };
 
 // Define the default message
@@ -19,19 +20,33 @@ const DEFAULT_MESSAGE: &str = "Hello";
 // バイクの数
 const NUMBER_OF_BIKES: usize = 5;
 
-#[derive(
-    BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, Copy, Clone, PartialEq,
-)]
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
-pub enum State {
+pub enum BikeState {
     Available,
     InUse,
     Cleaning,
 }
 
-impl Default for State {
+impl Default for BikeState {
     fn default() -> Self {
-        State::Available
+        BikeState::Available
+    }
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Bike {
+    account_id: AccountId,
+    state: BikeState,
+}
+
+impl Default for Bike {
+    fn default() -> Self {
+        Self {
+            account_id: "alice.near".parse().unwrap(), //TODO: tmp
+            state: BikeState::default(),
+        }
     }
 }
 
@@ -40,7 +55,7 @@ impl Default for State {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Contract {
     message: String,
-    bikes: [State; NUMBER_OF_BIKES],
+    bikes: Vec<Bike>,
 }
 
 // Define the default, which automatically initializes the contract
@@ -48,12 +63,20 @@ impl Default for Contract {
     fn default() -> Self {
         Self {
             message: DEFAULT_MESSAGE.to_string(),
-            bikes: [State::Available; NUMBER_OF_BIKES],
+            bikes: {
+                let mut v = Vec::new();
+                let mut index = 0;
+                while index < NUMBER_OF_BIKES {
+                    v.push(Bike::default());
+                    index += 1;
+                }
+                v
+            },
+            //TODO: initで指定した数のvecにしたい
         }
     }
 }
 
-// TODO: initを使用する
 // TODO: account_id利用
 // TODO: 送金する
 
@@ -72,40 +95,41 @@ impl Contract {
         self.message = message;
     }
 
-    pub fn get_bikes(&self) -> &[State; NUMBER_OF_BIKES] {
+    // TODO: アカウントに合わせて整形した(各ブール値もつけたものを返す)
+    pub fn get_bikes(&self) -> &[Bike] {
         &self.bikes
     }
 
     // 使用可能かどうか
     fn available(&self, number: usize) -> bool {
-        self.bikes[number] == State::Available
+        self.bikes[number].state == BikeState::Available
     }
 
     // 使用中かどうか
     fn in_use(&self, number: usize) -> bool {
-        self.bikes[number] == State::InUse
+        self.bikes[number].state == BikeState::InUse
     }
 
     // 清掃中かどうか
     fn cleaning(&self, number: usize) -> bool {
-        self.bikes[number] == State::Cleaning
+        self.bikes[number].state == BikeState::Cleaning
     }
 
     pub fn use_bike(&mut self, number: usize) {
         if self.available(number) {
-            self.bikes[number] = State::InUse;
+            self.bikes[number].state = BikeState::InUse;
         }
     }
 
     pub fn return_bike(&mut self, number: usize) {
         if self.in_use(number) || self.cleaning(number) {
-            self.bikes[number] = State::Available;
+            self.bikes[number].state = BikeState::Available;
         }
     }
 
     pub fn clean_bike(&mut self, number: usize) {
         if self.available(number) {
-            self.bikes[number] = State::Cleaning;
+            self.bikes[number].state = BikeState::Cleaning;
         }
     }
 }
@@ -124,7 +148,7 @@ mod tests {
         // this test did not call set_greeting so should return the default "Hello" greeting
         assert_eq!(contract.get_greeting(), "Hello".to_string());
         //TODO: テストもっとちゃんと書く
-        assert_eq!(contract.bikes[1], State::Available);
+        assert_eq!(contract.bikes[1].state, BikeState::Available);
     }
 
     #[test]
@@ -139,20 +163,20 @@ mod tests {
     fn use_return_clean() {
         let mut contract = Contract::default();
         let test_number = 1;
-        assert_eq!(contract.bikes[test_number], State::Available);
+        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::InUse);
+        assert_eq!(contract.bikes[test_number].state, BikeState::InUse);
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::InUse);
+        assert_eq!(contract.bikes[test_number].state, BikeState::InUse);
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::Available);
+        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::Available);
+        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
         contract.clean_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::Cleaning);
+        assert_eq!(contract.bikes[test_number].state, BikeState::Cleaning);
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::Cleaning);
+        assert_eq!(contract.bikes[test_number].state, BikeState::Cleaning);
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number], State::Available);
+        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
     }
 }
