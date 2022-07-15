@@ -8,6 +8,8 @@ import {
   logout,
   get_greeting,
   set_greeting,
+  change_loan_state,
+  is_on_loan,
 } from "./assets/js/near/utils";
 import getConfig from "./assets/js/near/config";
 
@@ -21,6 +23,8 @@ export default function App() {
   // after submitting the form, we want to show Notification
   const [showNotification, setShowNotification] = React.useState(false);
 
+  const [isOnLoan, setIsOnLoan] = React.useState(false);
+
   // The useEffect hook can be used to fire side-effects during render
   // Learn more: https://reactjs.org/docs/hooks-intro.html
   React.useEffect(
@@ -29,6 +33,8 @@ export default function App() {
       get_greeting().then((greetingFromContract) => {
         setGreeting(greetingFromContract);
       });
+      // is_on_loan s in near/utils.js
+      is_on_loan().then((a) => setIsOnLoan(a));
     },
 
     // The second argument to useEffect tells React when to re-run the effect
@@ -109,6 +115,8 @@ export default function App() {
               // make an update call to the smart contract
               // pass the value that the user entered in the greeting field
               await set_greeting(newGreeting);
+
+              // TODO: トランザクションが起きている時点で画面が再レンダリングになってこれより下の処理されてないと思う
             } catch (e) {
               alert(
                 "Something went wrong! " +
@@ -162,6 +170,9 @@ export default function App() {
             </div>
           </fieldset>
         </form>
+        <button onClick={() => change_loan_state()}>
+          loan {isOnLoan.toString()}
+        </button>
         <p>
           Look at that! A Hello World app! This greeting is stored on the NEAR
           blockchain. Check it out:
