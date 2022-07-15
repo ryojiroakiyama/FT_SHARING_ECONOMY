@@ -53,6 +53,10 @@ impl Default for Contract {
     }
 }
 
+// TODO: initを使用する
+// TODO: account_id利用
+// TODO: 送金する
+
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
