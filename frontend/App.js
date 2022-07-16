@@ -44,16 +44,24 @@ export default function App() {
     []
   )
 
-  //const a = async (index) => {
-  //  console.log("~~~~~~");
-  //  use_bike(index);
-  //  console.log("=======");
-  //  get_bikes()
-  //  .then(bikesFromContract => {
-  //    console.log(bikesFromContract)
-  //    setBikes(bikesFromContract)
-  //  })
-  //}
+  const callContractMethod = async (method, index) => {
+    console.log("call contract method");
+    setInProcess(true);
+    try {
+      await method(index);
+    } catch (e) {
+      alert(
+        'Something went wrong! ' +
+        'Please make sure that you are signed in with the correct account'
+      )
+    }
+    get_bikes()
+    .then(bikesFromContract => {
+      console.log(bikesFromContract)
+      setBikes(bikesFromContract)
+    });
+    setInProcess(false)
+  }
 
   // if not signed in, return early with sign-in prompt
   if (!window.walletConnection.isSignedIn()) {
@@ -181,74 +189,24 @@ export default function App() {
         ):(
           bikes.map((available, index) => {
             return (
-              //TODO: 繰り返しの部分をまとめる
-              //TODO: 変数名inProcess
               <div style={{ display: 'flex' }}>
                   {index}: bike
                 <button
                   disabled={!available}
-                  onClick={async () => {
-                    setInProcess(true);
-                    try {
-                      await use_bike(index);
-                    } catch (e) {
-                      alert(
-                        'Something went wrong! ' +
-                        'Maybe you need to sign out and back in? ' +
-                        'Check your browser console for more info.'
-                      )
-                    }
-                    get_bikes()
-                    .then(bikesFromContract => {
-                      console.log(bikesFromContract)
-                      setBikes(bikesFromContract)
-                    });
-                    setInProcess(false)}}
+                  onClick={() => callContractMethod(use_bike, index)}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   use
                 </button>
                 <button
                   disabled={!available}
-                  onClick={async () => {
-                    setInProcess(true);
-                    try {
-                      await inspect_bike(index);
-                    } catch (e) {
-                      alert(
-                        'Something went wrong! ' +
-                        'Maybe you need to sign out and back in? ' +
-                        'Check your browser console for more info.'
-                      )
-                    }
-                    get_bikes()
-                    .then(bikesFromContract => {
-                      console.log(bikesFromContract)
-                      setBikes(bikesFromContract)
-                    });
-                    setInProcess(false)}}
+                  onClick={() => callContractMethod(inspect_bike, index)}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   inspect
                 </button>
                 <button
-                  onClick={async () => {
-                    setInProcess(true);
-                    try {
-                      await return_bike(index);
-                    } catch (e) {
-                      alert(
-                        'Something went wrong! ' +
-                        'Maybe you need to sign out and back in? ' +
-                        'Check your browser console for more info.'
-                        )
-                      }
-                      get_bikes()
-                      .then(bikesFromContract => {
-                        console.log(bikesFromContract)
-                        setBikes(bikesFromContract)
-                      });
-                      setInProcess(false)}}
+                  onClick={() => callContractMethod(return_bike, index)}
                       style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   return
