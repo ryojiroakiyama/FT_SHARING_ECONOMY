@@ -25,7 +25,7 @@ const REPAIR_AMOUNT: u128 = 2_000_000_000_000_000_000_000_000;
 pub enum Bike {
     Available,
     InUse(AccountId),
-    Cleaning(AccountId),
+    Inspection(AccountId),
 }
 
 impl Default for Bike {
@@ -41,19 +41,20 @@ impl Bike {
     }
 
     fn use_bike(&mut self) {
-        assert!(self.available());
+        assert!(self.available(), "Not available");
         *self = Bike::InUse(env::predecessor_account_id());
     }
 
     fn inspect_bike(&mut self) {
-        assert!(self.available());
-        *self = Bike::Cleaning(env::predecessor_account_id());
+        assert!(self.available(), "Not available");
+        *self = Bike::Inspection(env::predecessor_account_id());
     }
 
     fn return_bike(&mut self) {
         assert!(
             *self == Bike::InUse(env::predecessor_account_id())
-                || *self == Bike::Cleaning(env::predecessor_account_id())
+                || *self == Bike::Inspection(env::predecessor_account_id()),
+            "Not in use or inspection"
         );
         *self = Bike::Available;
     }
@@ -179,10 +180,31 @@ mod tests {
         //TODO: use_bike -> use
         // バイク点検, 状態チェック
         bike.inspect_bike();
-        assert_eq!(bike, Bike::Cleaning(env::predecessor_account_id()));
+        assert_eq!(bike, Bike::Inspection(env::predecessor_account_id()));
 
         // バイク返却, 状態チェック
         bike.return_bike();
         assert_eq!(bike, Bike::Available);
+    }
+
+    #[test]
+    #[should_panic(expected = "Not available")]
+    fn duplicate_use() {
+        let mut bike = Bike::InUse(env::predecessor_account_id());
+        bike.use_bike();
+    }
+
+    #[test]
+    #[should_panic(expected = "Not available")]
+    fn duplicate_inspect() {
+        let mut bike = Bike::InUse(env::predecessor_account_id());
+        bike.inspect_bike();
+    }
+
+    #[test]
+    #[should_panic(expected = "Not in use or inspection")]
+    fn duplicate_return() {
+        let mut bike = Bike::Available;
+        bike.return_bike();
     }
 }
