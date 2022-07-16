@@ -180,14 +180,14 @@ export default function App() {
         {transaction === true ? (
           <button> transaction... </button>
         ):(
-          bikes.map((bike, index) => {
+          bikes.map((available, index) => {
             return (
               //TODO: 繰り返しの部分をまとめる
-              //TODO: 変数名transaction, inspect_bike
+              //TODO: 変数名transaction
               <div style={{ display: 'flex' }}>
                   {index}: bike
                 <button
-                  disabled={!bike.available}
+                  disabled={!available}
                   onClick={async () => {
                     setTransaction(true);
                     try {
@@ -210,30 +210,7 @@ export default function App() {
                   use
                 </button>
                 <button
-                  disabled={!(bike.using || bike.inspecting)}
-                  onClick={async () => {
-                    setTransaction(true);
-                    try {
-                      await return_bike(index);
-                    } catch (e) {
-                      alert(
-                        'Something went wrong! ' +
-                        'Maybe you need to sign out and back in? ' +
-                        'Check your browser console for more info.'
-                      )
-                    }
-                    get_bikes()
-                    .then(bikesFromContract => {
-                      console.log(bikesFromContract)
-                      setBikes(bikesFromContract)
-                    });
-                    setTransaction(false)}}
-                  style={{ borderRadius: '5px 5px 5px 5px' }}
-                >
-                  return
-                </button>
-                <button
-                  disabled={!bike.available}
+                  disabled={!available}
                   onClick={async () => {
                     setTransaction(true);
                     try {
@@ -254,6 +231,28 @@ export default function App() {
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   inspect
+                </button>
+                <button
+                  onClick={async () => {
+                    setTransaction(true);
+                    try {
+                      await return_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                        )
+                      }
+                      get_bikes()
+                      .then(bikesFromContract => {
+                        console.log(bikesFromContract)
+                        setBikes(bikesFromContract)
+                      });
+                      setTransaction(false)}}
+                      style={{ borderRadius: '5px 5px 5px 5px' }}
+                >
+                  return
                 </button>
               </div>
             );

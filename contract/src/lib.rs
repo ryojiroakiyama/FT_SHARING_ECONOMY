@@ -40,24 +40,6 @@ impl Bike {
     fn available(&self) -> bool {
         *self == Bike::Available
     }
-
-    // 使用中かどうか
-    fn using(&self) -> bool {
-        *self == Bike::InUse(env::current_account_id())
-    }
-
-    // 清掃中かどうか
-    fn inspecting(&self) -> bool {
-        *self == Bike::Cleaning(env::current_account_id())
-    }
-}
-
-#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug)]
-#[serde(crate = "near_sdk::serde")]
-pub struct BikeForFrontEnd {
-    available: bool,
-    using: bool,
-    inspecting: bool,
 }
 
 // Define the contract structure
@@ -104,35 +86,28 @@ impl Contract {
     }
 
     // TODO: iter使ったもっと楽な書き方あるはず
-    pub fn get_bikes(&self) -> Vec<BikeForFrontEnd> {
-        let mut v = Vec::new();
-        let mut index = 0;
-        while index < self.bikes.len() {
-            v.push(BikeForFrontEnd {
-                available: self.bikes[index].available(),
-                using: self.bikes[index].using(),
-                inspecting: self.bikes[index].inspecting(),
-            });
-            index += 1;
-        }
-        v
+    pub fn get_bikes(&self) -> Vec<bool> {
+        self.bikes.iter().map(|bike| bike.available()).collect()
     }
     //TODO: ユーザ1人一つしか使用できないようにする機能追加を推薦してもいいかも
     //TODO: フロント側でボタンの押し足は決める？
 
     pub fn use_bike(&mut self, index: usize) {
         assert!(self.bikes[index].available());
-        self.bikes[index] = Bike::InUse(env::current_account_id());
-    }
-
-    pub fn return_bike(&mut self, index: usize) {
-        assert!(self.bikes[index].using() || self.bikes[index].inspecting());
-        self.bikes[index] = Bike::Available;
+        self.bikes[index] = Bike::InUse(env::predecessor_account_id());
     }
 
     pub fn inspect_bike(&mut self, index: usize) {
         assert!(self.bikes[index].available());
-        self.bikes[index] = Bike::Cleaning(env::current_account_id());
+        self.bikes[index] = Bike::Cleaning(env::predecessor_account_id());
+    }
+
+    pub fn return_bike(&mut self, index: usize) {
+        assert!(
+            self.bikes[index] == Bike::InUse(env::predecessor_account_id())
+                || self.bikes[index] == Bike::Cleaning(env::predecessor_account_id())
+        );
+        self.bikes[index] = Bike::Available;
     }
 }
 
@@ -161,6 +136,7 @@ mod tests {
     }
 
     //TODO: テストもっとちゃんと書く
+    //TODO: integration_test動かす
     #[test]
     fn use_return_inspect() {
         let mut contract = Contract::default();
@@ -169,27 +145,28 @@ mod tests {
         contract.use_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
-            Bike::InUse(env::current_account_id())
+            Bike::InUse(env::predecessor_account_id())
         );
-        contract.use_bike(test_number);
-        assert_eq!(
-            contract.bikes[test_number],
-            Bike::InUse(env::current_account_id())
-        );
+        //TODO: アサーションテスト
+        //contract.use_bike(test_number);
+        //assert_eq!(
+        //    contract.bikes[test_number],
+        //    Bike::InUse(env::predecessor_account_id())
+        //);
         contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], Bike::Available);
-        contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number], Bike::Available);
+        //    contract.return_bike(test_number);
+        //    assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.inspect_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
-            Bike::Cleaning(env::current_account_id())
+            Bike::Cleaning(env::predecessor_account_id())
         );
-        contract.use_bike(test_number);
-        assert_eq!(
-            contract.bikes[test_number],
-            Bike::Cleaning(env::current_account_id())
-        );
+        //    contract.use_bike(test_number);
+        //    assert_eq!(
+        //        contract.bikes[test_number],
+        //        Bike::Cleaning(env::predecessor_account_id())
+        //    );
         contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], Bike::Available);
     }
