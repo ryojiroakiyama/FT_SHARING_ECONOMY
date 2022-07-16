@@ -42,12 +42,12 @@ impl Bike {
 
     // 使用中かどうか
     fn in_use(&self) -> bool {
-        *self == Bike::InUse(env::signer_account_id())
+        *self == Bike::InUse(env::current_account_id())
     }
 
     // 清掃中かどうか
     fn cleaning(&self) -> bool {
-        *self == Bike::Cleaning(env::signer_account_id())
+        *self == Bike::Cleaning(env::current_account_id())
     }
 }
 
@@ -122,7 +122,7 @@ impl Contract {
 
     pub fn use_bike(&mut self, index: usize) {
         if self.bikes[index].available() {
-            self.bikes[index] = Bike::InUse(env::signer_account_id());
+            self.bikes[index] = Bike::InUse(env::current_account_id());
         }
     }
 
@@ -134,7 +134,7 @@ impl Contract {
 
     pub fn clean_bike(&mut self, index: usize) {
         if self.bikes[index].available() {
-            self.bikes[index] = Bike::Cleaning(env::signer_account_id());
+            self.bikes[index] = Bike::Cleaning(env::current_account_id());
         }
     }
 }
@@ -172,12 +172,12 @@ mod tests {
         contract.use_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
-            Bike::InUse(env::signer_account_id())
+            Bike::InUse(env::current_account_id())
         );
         contract.use_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
-            Bike::InUse(env::signer_account_id())
+            Bike::InUse(env::current_account_id())
         );
         contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], Bike::Available);
@@ -186,12 +186,12 @@ mod tests {
         contract.clean_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
-            Bike::Cleaning(env::signer_account_id())
+            Bike::Cleaning(env::current_account_id())
         );
         contract.use_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
-            Bike::Cleaning(env::signer_account_id())
+            Bike::Cleaning(env::current_account_id())
         );
         contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], Bike::Available);
