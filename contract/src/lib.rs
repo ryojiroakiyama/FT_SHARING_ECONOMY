@@ -41,7 +41,7 @@ impl Bike {
     }
 
     // 使用中かどうか
-    fn in_use(&self) -> bool {
+    fn using(&self) -> bool {
         *self == Bike::InUse(env::current_account_id())
     }
 
@@ -55,7 +55,7 @@ impl Bike {
 #[serde(crate = "near_sdk::serde")]
 pub struct BikeForFrontEnd {
     available: bool,
-    in_use: bool,
+    using: bool,
     cleaning: bool,
 }
 
@@ -111,7 +111,7 @@ impl Contract {
         while index < self.bikes.len() {
             v.push(BikeForFrontEnd {
                 available: self.bikes[index].available(),
-                in_use: self.bikes[index].in_use(),
+                using: self.bikes[index].using(),
                 cleaning: self.bikes[index].cleaning(),
             });
             index += 1;
@@ -127,7 +127,7 @@ impl Contract {
     }
 
     pub fn return_bike(&mut self, index: usize) {
-        if self.bikes[index].in_use() || self.bikes[index].cleaning() {
+        if self.bikes[index].using() || self.bikes[index].cleaning() {
             self.bikes[index] = Bike::Available;
         }
     }

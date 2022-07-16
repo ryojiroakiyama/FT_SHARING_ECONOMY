@@ -174,7 +174,7 @@ export default function App() {
                 use
               </button>
               <button
-                disabled={!(bike.in_use || bike.cleaning)}
+                disabled={!(bike.using || bike.cleaning)}
                 style={{ borderRadius: '5px 5px 5px 5px' }}
               >
                 return
