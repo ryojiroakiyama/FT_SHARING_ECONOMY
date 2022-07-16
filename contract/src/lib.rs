@@ -120,7 +120,7 @@ impl Contract {
     }
     //TODO: ユーザ1人一つしか使用できないようにする機能追加を推薦してもいいかも
     //TODO: フロント側でボタンの押し足は決める？
-    //TODO: ベストプラクティス読む, お金を送金をやってしまう, loading...を表示
+    //TODO: ベストプラクティス読む, お金を送金をやってしまう
 
     pub fn use_bike(&mut self, index: usize) {
         if self.bikes[index].available() {
