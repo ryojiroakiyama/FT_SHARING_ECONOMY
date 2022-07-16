@@ -162,7 +162,6 @@ mod tests {
         }
     }
 
-    //TODO: integration_test動かす
     #[test]
     fn use_inspect_return_bike() {
         // 初期状態チェック
@@ -177,7 +176,6 @@ mod tests {
         bike.be_returned();
         assert_eq!(bike, Bike::Available);
 
-        //TODO: use_bike -> use
         // バイク点検, 状態チェック
         bike.be_inspected();
         assert_eq!(bike, Bike::Inspection(env::predecessor_account_id()));
