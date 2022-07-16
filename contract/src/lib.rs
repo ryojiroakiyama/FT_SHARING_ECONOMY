@@ -1,14 +1,3 @@
-/*
- * Example smart contract written in RUST
- *
- * Learn more about writing NEAR smart contracts with Rust:
- * https://near-docs.io/develop/Contract
- *
- */
-
-const USE_AMOUNT: u128 = 4_000_000_000_000_000_000_000_000;
-const REPAIR_AMOUNT: u128 = 2_000_000_000_000_000_000_000_000;
-
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, log, near_bindgen,
@@ -16,10 +5,18 @@ use near_sdk::{
     AccountId,
 };
 
+//TODO: 追加機能集
+//TODO: ユーザ1人一つしか使用できないようにする
+//TODO: アカウント所持者はバイクの数を増やせる
+//TODO: 使用しているユーザにしかリターンボタンを見せないようにする
+
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
-// バイクの数
+//TODO: initで指定した数のvecにしたい
 const NUMBER_OF_BIKES: usize = 5;
+
+const USE_AMOUNT: u128 = 4_000_000_000_000_000_000_000_000;
+const REPAIR_AMOUNT: u128 = 2_000_000_000_000_000_000_000_000;
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
@@ -39,6 +36,24 @@ impl Bike {
     // 使用可能かどうか
     fn available(&self) -> bool {
         *self == Bike::Available
+    }
+
+    fn use_bike(&mut self) {
+        assert!(self.available());
+        *self = Bike::InUse(env::predecessor_account_id());
+    }
+
+    fn inspect_bike(&mut self) {
+        assert!(self.available());
+        *self = Bike::Cleaning(env::predecessor_account_id());
+    }
+
+    fn return_bike(&mut self) {
+        assert!(
+            *self == Bike::InUse(env::predecessor_account_id())
+                || *self == Bike::Cleaning(env::predecessor_account_id())
+        );
+        *self = Bike::Available;
     }
 }
 
@@ -64,7 +79,6 @@ impl Default for Contract {
                 }
                 v
             },
-            //TODO: initで指定した数のvecにしたい
         }
     }
 }
@@ -85,36 +99,23 @@ impl Contract {
         self.message = message;
     }
 
-    // TODO: iter使ったもっと楽な書き方あるはず
     pub fn get_bikes(&self) -> Vec<bool> {
         self.bikes.iter().map(|bike| bike.available()).collect()
     }
-    //TODO: ユーザ1人一つしか使用できないようにする機能追加を推薦してもいいかも
-    //TODO: フロント側でボタンの押し足は決める？
 
     pub fn use_bike(&mut self, index: usize) {
-        assert!(self.bikes[index].available());
-        self.bikes[index] = Bike::InUse(env::predecessor_account_id());
+        self.bikes[index].use_bike();
     }
 
     pub fn inspect_bike(&mut self, index: usize) {
-        assert!(self.bikes[index].available());
-        self.bikes[index] = Bike::Cleaning(env::predecessor_account_id());
+        self.bikes[index].inspect_bike();
     }
 
     pub fn return_bike(&mut self, index: usize) {
-        assert!(
-            self.bikes[index] == Bike::InUse(env::predecessor_account_id())
-                || self.bikes[index] == Bike::Cleaning(env::predecessor_account_id())
-        );
-        self.bikes[index] = Bike::Available;
+        self.bikes[index].return_bike();
     }
 }
 
-/*
- * The rest of this file holds the inline tests for the code above
- * Learn more about Rust tests: https://doc.rust-lang.org/book/ch11-01-writing-tests.html
- */
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,10 +123,10 @@ mod tests {
     #[test]
     fn get_default_greeting() {
         let contract = Contract::default();
-        // this test did not call set_greeting so should return the default "Hello" greeting
         assert_eq!(contract.get_greeting(), "Hello".to_string());
-        //TODO: テストもっとちゃんと書く
-        assert_eq!(contract.bikes[1], Bike::Available);
+        for bike in contract.bikes {
+            assert_eq!(bike, Bike::Available);
+        }
     }
 
     #[test]
@@ -135,7 +136,6 @@ mod tests {
         assert_eq!(contract.get_greeting(), "howdy".to_string());
     }
 
-    //TODO: テストもっとちゃんと書く
     //TODO: integration_test動かす
     #[test]
     fn use_return_inspect() {
