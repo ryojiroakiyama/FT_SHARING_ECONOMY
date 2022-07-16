@@ -5,7 +5,6 @@ import './assets/css/global.css'
 
 import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
-import { async } from 'regenerator-runtime'
 
 
 export default function App() {
@@ -20,7 +19,7 @@ export default function App() {
 
   const [bikes, setBikes] = useState([]);
 
-  const [transaction, setTransaction] = useState(false);
+  const [inProcess, setInProcess] = useState(false);
 
   // The useEffect hook can be used to fire side-effects during render
   // Learn more: https://reactjs.org/docs/hooks-intro.html
@@ -177,19 +176,19 @@ export default function App() {
             </div>
           </fieldset>
         </form>
-        {transaction === true ? (
-          <button> transaction... </button>
+        {inProcess === true ? (
+          <p> in process... </p>
         ):(
           bikes.map((available, index) => {
             return (
               //TODO: 繰り返しの部分をまとめる
-              //TODO: 変数名transaction
+              //TODO: 変数名inProcess
               <div style={{ display: 'flex' }}>
                   {index}: bike
                 <button
                   disabled={!available}
                   onClick={async () => {
-                    setTransaction(true);
+                    setInProcess(true);
                     try {
                       await use_bike(index);
                     } catch (e) {
@@ -204,7 +203,7 @@ export default function App() {
                       console.log(bikesFromContract)
                       setBikes(bikesFromContract)
                     });
-                    setTransaction(false)}}
+                    setInProcess(false)}}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   use
@@ -212,7 +211,7 @@ export default function App() {
                 <button
                   disabled={!available}
                   onClick={async () => {
-                    setTransaction(true);
+                    setInProcess(true);
                     try {
                       await inspect_bike(index);
                     } catch (e) {
@@ -227,14 +226,14 @@ export default function App() {
                       console.log(bikesFromContract)
                       setBikes(bikesFromContract)
                     });
-                    setTransaction(false)}}
+                    setInProcess(false)}}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   inspect
                 </button>
                 <button
                   onClick={async () => {
-                    setTransaction(true);
+                    setInProcess(true);
                     try {
                       await return_bike(index);
                     } catch (e) {
@@ -249,7 +248,7 @@ export default function App() {
                         console.log(bikesFromContract)
                         setBikes(bikesFromContract)
                       });
-                      setTransaction(false)}}
+                      setInProcess(false)}}
                       style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   return
