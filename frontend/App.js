@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bikes} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, clean_bike} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -40,6 +40,17 @@ export default function App() {
     // This works because signing into NEAR Wallet reloads the page
     []
   )
+
+  //const a = async (index) => {
+  //  console.log("~~~~~~");
+  //  use_bike(index);
+  //  console.log("=======");
+  //  get_bikes()
+  //  .then(bikesFromContract => {
+  //    console.log(bikesFromContract)
+  //    setBikes(bikesFromContract)
+  //  })
+  //}
 
   // if not signed in, return early with sign-in prompt
   if (!window.walletConnection.isSignedIn()) {
@@ -169,18 +180,21 @@ export default function App() {
                 {index}: bike
               <button
                 disabled={!bike.available}
+                onClick={() => {use_bike(index)}}
                 style={{ borderRadius: '5px 5px 5px 5px' }}
               >
                 use
               </button>
               <button
                 disabled={!(bike.using || bike.cleaning)}
+                onClick={() => {return_bike(index)}}
                 style={{ borderRadius: '5px 5px 5px 5px' }}
               >
                 return
               </button>
               <button
-                disabled={bike.available}
+                disabled={!bike.available}
+                onClick={() => {clean_bike(index)}}
                 style={{ borderRadius: '5px 5px 5px 5px' }}
               >
                 clean
