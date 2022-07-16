@@ -183,7 +183,6 @@ export default function App() {
           bikes.map((bike, index) => {
             return (
               //TODO: 繰り返しの部分をまとめる
-              //TODO: transaction, try-catchを使うか？
               //TODO: 変数名transaction, clean_bike
               <div style={{ display: 'flex' }}>
                   {index}: bike
@@ -191,7 +190,15 @@ export default function App() {
                   disabled={!bike.available}
                   onClick={async () => {
                     setTransaction(true);
-                    await use_bike(index);
+                    try {
+                      await use_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                      )
+                    }
                     get_bikes()
                     .then(bikesFromContract => {
                       console.log(bikesFromContract)
@@ -206,7 +213,15 @@ export default function App() {
                   disabled={!(bike.using || bike.cleaning)}
                   onClick={async () => {
                     setTransaction(true);
-                    await return_bike(index);
+                    try {
+                      await return_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                      )
+                    }
                     get_bikes()
                     .then(bikesFromContract => {
                       console.log(bikesFromContract)
@@ -221,7 +236,15 @@ export default function App() {
                   disabled={!bike.available}
                   onClick={async () => {
                     setTransaction(true);
-                    await clean_bike(index);
+                    try {
+                      await clean_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                      )
+                    }
                     get_bikes()
                     .then(bikesFromContract => {
                       console.log(bikesFromContract)

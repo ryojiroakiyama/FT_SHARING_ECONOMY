@@ -123,21 +123,18 @@ impl Contract {
     //TODO: ベストプラクティス読む, お金を送金をやってしまう
 
     pub fn use_bike(&mut self, index: usize) {
-        if self.bikes[index].available() {
-            self.bikes[index] = Bike::InUse(env::current_account_id());
-        }
+        assert!(self.bikes[index].available());
+        self.bikes[index] = Bike::InUse(env::current_account_id());
     }
 
     pub fn return_bike(&mut self, index: usize) {
-        if self.bikes[index].using() || self.bikes[index].cleaning() {
-            self.bikes[index] = Bike::Available;
-        }
+        assert!(self.bikes[index].using() || self.bikes[index].cleaning());
+        self.bikes[index] = Bike::Available;
     }
 
     pub fn clean_bike(&mut self, index: usize) {
-        if self.bikes[index].available() {
-            self.bikes[index] = Bike::Cleaning(env::current_account_id());
-        }
+        assert!(self.bikes[index].available());
+        self.bikes[index] = Bike::Cleaning(env::current_account_id());
     }
 }
 
