@@ -34,6 +34,23 @@ impl Default for BikeState {
     }
 }
 
+impl BikeState {
+    // 使用可能かどうか
+    fn available(&self) -> bool {
+        *self == BikeState::Available
+    }
+
+    // 使用中かどうか
+    fn in_use(&self) -> bool {
+        *self == BikeState::InUse
+    }
+
+    // 清掃中かどうか
+    fn cleaning(&self) -> bool {
+        *self == BikeState::Cleaning
+    }
+}
+
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Bike {
@@ -109,45 +126,30 @@ impl Contract {
         let mut index = 0;
         while index < self.bikes.len() {
             v.push(BikeForFrontEnd {
-                available: self.available(index),
-                in_use: self.in_use(index),
-                cleaning: self.cleaning(index),
+                available: self.bikes[index].state.available(),
+                in_use: self.bikes[index].state.in_use(),
+                cleaning: self.bikes[index].state.cleaning(),
             });
             index += 1;
         }
         v
     }
 
-    // 使用可能かどうか
-    fn available(&self, number: usize) -> bool {
-        self.bikes[number].state == BikeState::Available
-    }
-
-    // 使用中かどうか
-    fn in_use(&self, number: usize) -> bool {
-        self.bikes[number].state == BikeState::InUse
-    }
-
-    // 清掃中かどうか
-    fn cleaning(&self, number: usize) -> bool {
-        self.bikes[number].state == BikeState::Cleaning
-    }
-
-    pub fn use_bike(&mut self, number: usize) {
-        if self.available(number) {
-            self.bikes[number].state = BikeState::InUse;
+    pub fn use_bike(&mut self, index: usize) {
+        if self.bikes[index].state.available() {
+            self.bikes[index].state = BikeState::InUse;
         }
     }
 
-    pub fn return_bike(&mut self, number: usize) {
-        if self.in_use(number) || self.cleaning(number) {
-            self.bikes[number].state = BikeState::Available;
+    pub fn return_bike(&mut self, index: usize) {
+        if self.bikes[index].state.in_use() || self.bikes[index].state.cleaning() {
+            self.bikes[index].state = BikeState::Available;
         }
     }
 
-    pub fn clean_bike(&mut self, number: usize) {
-        if self.available(number) {
-            self.bikes[number].state = BikeState::Cleaning;
+    pub fn clean_bike(&mut self, index: usize) {
+        if self.bikes[index].state.available() {
+            self.bikes[index].state = BikeState::Cleaning;
         }
     }
 }
