@@ -3,8 +3,9 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bikes} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, clean_bike} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
+import { async } from 'regenerator-runtime'
 
 
 export default function App() {
@@ -18,6 +19,8 @@ export default function App() {
   const [showNotification, setShowNotification] = React.useState(false)
 
   const [bikes, setBikes] = useState([]);
+
+  const [transaction, setTransaction] = useState(false);
 
   // The useEffect hook can be used to fire side-effects during render
   // Learn more: https://reactjs.org/docs/hooks-intro.html
@@ -38,8 +41,20 @@ export default function App() {
     // The second argument to useEffect tells React when to re-run the effect
     // Use an empty array to specify "only run on first render"
     // This works because signing into NEAR Wallet reloads the page
+    //TODO: なんで再レンダリングするの？？
     []
   )
+
+  //const a = async (index) => {
+  //  console.log("~~~~~~");
+  //  use_bike(index);
+  //  console.log("=======");
+  //  get_bikes()
+  //  .then(bikesFromContract => {
+  //    console.log(bikesFromContract)
+  //    setBikes(bikesFromContract)
+  //  })
+  //}
 
   // if not signed in, return early with sign-in prompt
   if (!window.walletConnection.isSignedIn()) {
@@ -162,32 +177,88 @@ export default function App() {
             </div>
           </fieldset>
         </form>
-        {/*TODO: returnボタンが誰でも出るのを変える */}
-        {bikes.map((bike, index) => {
-          return (
-            <div style={{ display: 'flex' }}>
-                {index}: bike
-              <button
-                disabled={!bike.available}
-                style={{ borderRadius: '5px 5px 5px 5px' }}
-              >
-                use
-              </button>
-              <button
-                disabled={!(bike.using || bike.cleaning)}
-                style={{ borderRadius: '5px 5px 5px 5px' }}
-              >
-                return
-              </button>
-              <button
-                disabled={bike.available}
-                style={{ borderRadius: '5px 5px 5px 5px' }}
-              >
-                clean
-              </button>
-            </div>
-          );
-        })}
+        {transaction === true ? (
+          <button> transaction... </button>
+        ):(
+          bikes.map((bike, index) => {
+            return (
+              //TODO: 繰り返しの部分をまとめる
+              //TODO: 変数名transaction, clean_bike
+              <div style={{ display: 'flex' }}>
+                  {index}: bike
+                <button
+                  disabled={!bike.available}
+                  onClick={async () => {
+                    setTransaction(true);
+                    try {
+                      await use_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                      )
+                    }
+                    get_bikes()
+                    .then(bikesFromContract => {
+                      console.log(bikesFromContract)
+                      setBikes(bikesFromContract)
+                    });
+                    setTransaction(false)}}
+                  style={{ borderRadius: '5px 5px 5px 5px' }}
+                >
+                  use
+                </button>
+                <button
+                  disabled={!(bike.using || bike.cleaning)}
+                  onClick={async () => {
+                    setTransaction(true);
+                    try {
+                      await return_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                      )
+                    }
+                    get_bikes()
+                    .then(bikesFromContract => {
+                      console.log(bikesFromContract)
+                      setBikes(bikesFromContract)
+                    });
+                    setTransaction(false)}}
+                  style={{ borderRadius: '5px 5px 5px 5px' }}
+                >
+                  return
+                </button>
+                <button
+                  disabled={!bike.available}
+                  onClick={async () => {
+                    setTransaction(true);
+                    try {
+                      await clean_bike(index);
+                    } catch (e) {
+                      alert(
+                        'Something went wrong! ' +
+                        'Maybe you need to sign out and back in? ' +
+                        'Check your browser console for more info.'
+                      )
+                    }
+                    get_bikes()
+                    .then(bikesFromContract => {
+                      console.log(bikesFromContract)
+                      setBikes(bikesFromContract)
+                    });
+                    setTransaction(false)}}
+                  style={{ borderRadius: '5px 5px 5px 5px' }}
+                >
+                  clean
+                </button>
+              </div>
+            );
+          })
+        )}
         <p>
           Look at that! A Hello World app! This greeting is stored on the NEAR blockchain. Check it out:
         </p>
