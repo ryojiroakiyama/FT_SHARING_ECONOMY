@@ -20,7 +20,7 @@ export async function initContract() {
     // View methods are read only. They don't modify the state, but usually return some value.
     viewMethods: ['get_greeting', 'get_bikes'],
     // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: ['set_greeting', 'use_bike', 'return_bike', 'clean_bike'],
+    changeMethods: ['set_greeting', 'use_bike', 'return_bike', 'inspect_bike'],
   })
 }
 
@@ -59,8 +59,8 @@ export async function return_bike(index){
   return response
 }
 
-export async function clean_bike(index){
-  let response = await window.contract.clean_bike({
+export async function inspect_bike(index){
+  let response = await window.contract.inspect_bike({
     args:{index: index}
   })
   return response

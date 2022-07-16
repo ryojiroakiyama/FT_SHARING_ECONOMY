@@ -6,7 +6,8 @@
  *
  */
 
-// TODO: プロジェクトの名前を変える
+const USE_AMOUNT: u128 = 4_000_000_000_000_000_000_000_000;
+const REPAIR_AMOUNT: u128 = 2_000_000_000_000_000_000_000_000;
 
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
@@ -46,7 +47,7 @@ impl Bike {
     }
 
     // 清掃中かどうか
-    fn cleaning(&self) -> bool {
+    fn inspecting(&self) -> bool {
         *self == Bike::Cleaning(env::current_account_id())
     }
 }
@@ -56,7 +57,7 @@ impl Bike {
 pub struct BikeForFrontEnd {
     available: bool,
     using: bool,
-    cleaning: bool,
+    inspecting: bool,
 }
 
 // Define the contract structure
@@ -110,7 +111,7 @@ impl Contract {
             v.push(BikeForFrontEnd {
                 available: self.bikes[index].available(),
                 using: self.bikes[index].using(),
-                cleaning: self.bikes[index].cleaning(),
+                inspecting: self.bikes[index].inspecting(),
             });
             index += 1;
         }
@@ -125,11 +126,11 @@ impl Contract {
     }
 
     pub fn return_bike(&mut self, index: usize) {
-        assert!(self.bikes[index].using() || self.bikes[index].cleaning());
+        assert!(self.bikes[index].using() || self.bikes[index].inspecting());
         self.bikes[index] = Bike::Available;
     }
 
-    pub fn clean_bike(&mut self, index: usize) {
+    pub fn inspect_bike(&mut self, index: usize) {
         assert!(self.bikes[index].available());
         self.bikes[index] = Bike::Cleaning(env::current_account_id());
     }
@@ -161,7 +162,7 @@ mod tests {
 
     //TODO: テストもっとちゃんと書く
     #[test]
-    fn use_return_clean() {
+    fn use_return_inspect() {
         let mut contract = Contract::default();
         let test_number = 1;
         assert_eq!(contract.bikes[test_number], Bike::Available);
@@ -179,7 +180,7 @@ mod tests {
         assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.return_bike(test_number);
         assert_eq!(contract.bikes[test_number], Bike::Available);
-        contract.clean_bike(test_number);
+        contract.inspect_bike(test_number);
         assert_eq!(
             contract.bikes[test_number],
             Bike::Cleaning(env::current_account_id())

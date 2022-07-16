@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, clean_bike} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 import { async } from 'regenerator-runtime'
 
@@ -183,7 +183,7 @@ export default function App() {
           bikes.map((bike, index) => {
             return (
               //TODO: 繰り返しの部分をまとめる
-              //TODO: 変数名transaction, clean_bike
+              //TODO: 変数名transaction, inspect_bike
               <div style={{ display: 'flex' }}>
                   {index}: bike
                 <button
@@ -210,7 +210,7 @@ export default function App() {
                   use
                 </button>
                 <button
-                  disabled={!(bike.using || bike.cleaning)}
+                  disabled={!(bike.using || bike.inspecting)}
                   onClick={async () => {
                     setTransaction(true);
                     try {
@@ -237,7 +237,7 @@ export default function App() {
                   onClick={async () => {
                     setTransaction(true);
                     try {
-                      await clean_bike(index);
+                      await inspect_bike(index);
                     } catch (e) {
                       alert(
                         'Something went wrong! ' +
@@ -253,7 +253,7 @@ export default function App() {
                     setTransaction(false)}}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
-                  clean
+                  inspect
                 </button>
               </div>
             );
