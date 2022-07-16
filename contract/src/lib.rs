@@ -85,8 +85,6 @@ impl Default for Contract {
         }
     }
 }
-
-// TODO: account_id利用
 // TODO: 送金する
 
 // Implement the contract structure
@@ -120,7 +118,6 @@ impl Contract {
     }
     //TODO: ユーザ1人一つしか使用できないようにする機能追加を推薦してもいいかも
     //TODO: フロント側でボタンの押し足は決める？
-    //TODO: ベストプラクティス読む, お金を送金をやってしまう
 
     pub fn use_bike(&mut self, index: usize) {
         assert!(self.bikes[index].available());
