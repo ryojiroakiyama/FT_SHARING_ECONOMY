@@ -61,6 +61,12 @@ export default function App() {
       setBikes(bikesFromContract)
     });
     setInProcess(false)
+    setShowNotification(true)
+    // remove Notification again after css animation completes
+    // this allows it to be shown again next time the form is submitted
+    setTimeout(() => {
+      setShowNotification(false)
+    }, 11000)
   }
 
   // if not signed in, return early with sign-in prompt
