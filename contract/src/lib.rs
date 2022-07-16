@@ -10,7 +10,7 @@
 
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    log, near_bindgen,
+    env, log, near_bindgen,
     serde::{Deserialize, Serialize},
     AccountId,
 };
@@ -22,32 +22,41 @@ const NUMBER_OF_BIKES: usize = 5;
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
-pub enum BikeState {
+pub enum Bike {
     Available,
-    InUse,
-    Cleaning,
+    InUse(AccountId),
+    Cleaning(AccountId),
 }
 
-impl Default for BikeState {
+impl Default for Bike {
     fn default() -> Self {
-        BikeState::Available
+        Bike::Available
+    }
+}
+
+impl Bike {
+    // 使用可能かどうか
+    fn available(&self) -> bool {
+        *self == Bike::Available
+    }
+
+    // 使用中かどうか
+    fn using(&self) -> bool {
+        *self == Bike::InUse(env::current_account_id())
+    }
+
+    // 清掃中かどうか
+    fn cleaning(&self) -> bool {
+        *self == Bike::Cleaning(env::current_account_id())
     }
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug)]
 #[serde(crate = "near_sdk::serde")]
-pub struct Bike {
-    account_id: AccountId,
-    state: BikeState,
-}
-
-impl Default for Bike {
-    fn default() -> Self {
-        Self {
-            account_id: "alice.near".parse().unwrap(), //TODO: tmp
-            state: BikeState::default(),
-        }
-    }
+pub struct BikeForFrontEnd {
+    available: bool,
+    using: bool,
+    cleaning: bool,
 }
 
 // Define the contract structure
@@ -95,41 +104,37 @@ impl Contract {
         self.message = message;
     }
 
-    // TODO: アカウントに合わせて整形した(各ブール値もつけたものを返す)
-    pub fn get_bikes(&self) -> &[Bike] {
-        &self.bikes
+    // TODO: iter使ったもっと楽な書き方あるはず
+    pub fn get_bikes(&self) -> Vec<BikeForFrontEnd> {
+        let mut v = Vec::new();
+        let mut index = 0;
+        while index < self.bikes.len() {
+            v.push(BikeForFrontEnd {
+                available: self.bikes[index].available(),
+                using: self.bikes[index].using(),
+                cleaning: self.bikes[index].cleaning(),
+            });
+            index += 1;
+        }
+        v
     }
+    //TODO: ユーザ1人一つしか使用できないようにする機能追加
 
-    // 使用可能かどうか
-    fn available(&self, number: usize) -> bool {
-        self.bikes[number].state == BikeState::Available
-    }
-
-    // 使用中かどうか
-    fn in_use(&self, number: usize) -> bool {
-        self.bikes[number].state == BikeState::InUse
-    }
-
-    // 清掃中かどうか
-    fn cleaning(&self, number: usize) -> bool {
-        self.bikes[number].state == BikeState::Cleaning
-    }
-
-    pub fn use_bike(&mut self, number: usize) {
-        if self.available(number) {
-            self.bikes[number].state = BikeState::InUse;
+    pub fn use_bike(&mut self, index: usize) {
+        if self.bikes[index].available() {
+            self.bikes[index] = Bike::InUse(env::current_account_id());
         }
     }
 
-    pub fn return_bike(&mut self, number: usize) {
-        if self.in_use(number) || self.cleaning(number) {
-            self.bikes[number].state = BikeState::Available;
+    pub fn return_bike(&mut self, index: usize) {
+        if self.bikes[index].using() || self.bikes[index].cleaning() {
+            self.bikes[index] = Bike::Available;
         }
     }
 
-    pub fn clean_bike(&mut self, number: usize) {
-        if self.available(number) {
-            self.bikes[number].state = BikeState::Cleaning;
+    pub fn clean_bike(&mut self, index: usize) {
+        if self.bikes[index].available() {
+            self.bikes[index] = Bike::Cleaning(env::current_account_id());
         }
     }
 }
@@ -148,7 +153,7 @@ mod tests {
         // this test did not call set_greeting so should return the default "Hello" greeting
         assert_eq!(contract.get_greeting(), "Hello".to_string());
         //TODO: テストもっとちゃんと書く
-        assert_eq!(contract.bikes[1].state, BikeState::Available);
+        assert_eq!(contract.bikes[1], Bike::Available);
     }
 
     #[test]
@@ -163,20 +168,32 @@ mod tests {
     fn use_return_clean() {
         let mut contract = Contract::default();
         let test_number = 1;
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::InUse);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::InUse(env::current_account_id())
+        );
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::InUse);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::InUse(env::current_account_id())
+        );
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.clean_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Cleaning);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::Cleaning(env::current_account_id())
+        );
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Cleaning);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::Cleaning(env::current_account_id())
+        );
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
     }
 }
