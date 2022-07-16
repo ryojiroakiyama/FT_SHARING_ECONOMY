@@ -10,7 +10,7 @@
 
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    log, near_bindgen,
+    env, log, near_bindgen,
     serde::{Deserialize, Serialize},
     AccountId,
 };
@@ -22,48 +22,32 @@ const NUMBER_OF_BIKES: usize = 5;
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
-pub enum BikeState {
+pub enum Bike {
     Available,
-    InUse,
-    Cleaning,
-}
-
-impl Default for BikeState {
-    fn default() -> Self {
-        BikeState::Available
-    }
-}
-
-impl BikeState {
-    // 使用可能かどうか
-    fn available(&self) -> bool {
-        *self == BikeState::Available
-    }
-
-    // 使用中かどうか
-    fn in_use(&self) -> bool {
-        *self == BikeState::InUse
-    }
-
-    // 清掃中かどうか
-    fn cleaning(&self) -> bool {
-        *self == BikeState::Cleaning
-    }
-}
-
-#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug)]
-#[serde(crate = "near_sdk::serde")]
-pub struct Bike {
-    account_id: AccountId,
-    state: BikeState,
+    InUse(AccountId),
+    Cleaning(AccountId),
 }
 
 impl Default for Bike {
     fn default() -> Self {
-        Self {
-            account_id: "alice.near".parse().unwrap(), //TODO: tmp
-            state: BikeState::default(),
-        }
+        Bike::Available
+    }
+}
+
+impl Bike {
+    // 使用可能かどうか
+    fn available(&self) -> bool {
+        *self == Bike::Available
+    }
+
+    // 使用中かどうか
+    fn in_use(&self) -> bool {
+        *self == Bike::InUse(env::signer_account_id())
+    }
+
+    // 清掃中かどうか
+    fn cleaning(&self) -> bool {
+        *self == Bike::Cleaning(env::signer_account_id())
     }
 }
 
@@ -126,30 +110,31 @@ impl Contract {
         let mut index = 0;
         while index < self.bikes.len() {
             v.push(BikeForFrontEnd {
-                available: self.bikes[index].state.available(),
-                in_use: self.bikes[index].state.in_use(),
-                cleaning: self.bikes[index].state.cleaning(),
+                available: self.bikes[index].available(),
+                in_use: self.bikes[index].in_use(),
+                cleaning: self.bikes[index].cleaning(),
             });
             index += 1;
         }
         v
     }
+    //TODO: ユーザ1人一つしか使用できないようにする機能追加
 
     pub fn use_bike(&mut self, index: usize) {
-        if self.bikes[index].state.available() {
-            self.bikes[index].state = BikeState::InUse;
+        if self.bikes[index].available() {
+            self.bikes[index] = Bike::InUse(env::signer_account_id());
         }
     }
 
     pub fn return_bike(&mut self, index: usize) {
-        if self.bikes[index].state.in_use() || self.bikes[index].state.cleaning() {
-            self.bikes[index].state = BikeState::Available;
+        if self.bikes[index].in_use() || self.bikes[index].cleaning() {
+            self.bikes[index] = Bike::Available;
         }
     }
 
     pub fn clean_bike(&mut self, index: usize) {
-        if self.bikes[index].state.available() {
-            self.bikes[index].state = BikeState::Cleaning;
+        if self.bikes[index].available() {
+            self.bikes[index] = Bike::Cleaning(env::signer_account_id());
         }
     }
 }
@@ -168,7 +153,7 @@ mod tests {
         // this test did not call set_greeting so should return the default "Hello" greeting
         assert_eq!(contract.get_greeting(), "Hello".to_string());
         //TODO: テストもっとちゃんと書く
-        assert_eq!(contract.bikes[1].state, BikeState::Available);
+        assert_eq!(contract.bikes[1], Bike::Available);
     }
 
     #[test]
@@ -183,20 +168,32 @@ mod tests {
     fn use_return_clean() {
         let mut contract = Contract::default();
         let test_number = 1;
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::InUse);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::InUse(env::signer_account_id())
+        );
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::InUse);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::InUse(env::signer_account_id())
+        );
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
         contract.clean_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Cleaning);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::Cleaning(env::signer_account_id())
+        );
         contract.use_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Cleaning);
+        assert_eq!(
+            contract.bikes[test_number],
+            Bike::Cleaning(env::signer_account_id())
+        );
         contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number].state, BikeState::Available);
+        assert_eq!(contract.bikes[test_number], Bike::Available);
     }
 }
