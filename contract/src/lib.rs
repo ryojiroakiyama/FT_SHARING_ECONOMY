@@ -10,6 +10,8 @@ use near_sdk::{
 //TODO: アカウント所持者はバイクの数を増やせる
 //TODO: 使用しているユーザにしかリターンボタンを見せないようにする
 
+// TODO: 送金する
+
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
 //TODO: initで指定した数のvecにしたい
@@ -82,7 +84,6 @@ impl Default for Contract {
         }
     }
 }
-// TODO: 送金する
 
 // Implement the contract structure
 #[near_bindgen]
@@ -99,7 +100,7 @@ impl Contract {
         self.message = message;
     }
 
-    pub fn get_bikes(&self) -> Vec<bool> {
+    pub fn get_bike_states(&self) -> Vec<bool> {
         self.bikes.iter().map(|bike| bike.available()).collect()
     }
 
@@ -121,7 +122,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn get_default_greeting() {
+    fn get_default() {
         let contract = Contract::default();
         assert_eq!(contract.get_greeting(), "Hello".to_string());
         for bike in contract.bikes {
@@ -136,38 +137,52 @@ mod tests {
         assert_eq!(contract.get_greeting(), "howdy".to_string());
     }
 
+    #[test]
+    fn contract_use_bike_check_status() {
+        let mut contract = Contract {
+            message: String::from("a"),
+            bikes: vec![Bike::Available, Bike::Available, Bike::Available],
+        };
+        let index = 1;
+
+        // 初期状態をチェック
+        for s in contract.get_bike_states() {
+            assert!(s);
+        }
+
+        // バイクを使用, 状態をチェック
+        contract.use_bike(index);
+        assert!(!contract.bikes[index].available());
+
+        // バイクを返却, 状態をチェック
+        contract.return_bike(index);
+        for s in contract.get_bike_states() {
+            assert!(s);
+        }
+    }
+
     //TODO: integration_test動かす
     #[test]
-    fn use_return_inspect() {
-        let mut contract = Contract::default();
-        let test_number = 1;
-        assert_eq!(contract.bikes[test_number], Bike::Available);
-        contract.use_bike(test_number);
-        assert_eq!(
-            contract.bikes[test_number],
-            Bike::InUse(env::predecessor_account_id())
-        );
-        //TODO: アサーションテスト
-        //contract.use_bike(test_number);
-        //assert_eq!(
-        //    contract.bikes[test_number],
-        //    Bike::InUse(env::predecessor_account_id())
-        //);
-        contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number], Bike::Available);
-        //    contract.return_bike(test_number);
-        //    assert_eq!(contract.bikes[test_number], Bike::Available);
-        contract.inspect_bike(test_number);
-        assert_eq!(
-            contract.bikes[test_number],
-            Bike::Cleaning(env::predecessor_account_id())
-        );
-        //    contract.use_bike(test_number);
-        //    assert_eq!(
-        //        contract.bikes[test_number],
-        //        Bike::Cleaning(env::predecessor_account_id())
-        //    );
-        contract.return_bike(test_number);
-        assert_eq!(contract.bikes[test_number], Bike::Available);
+    fn use_inspect_return_bike() {
+        // 初期状態チェック
+        let mut bike = Bike::default();
+        assert!(bike.available());
+
+        // バイク使用, 状態チェック
+        bike.use_bike();
+        assert_eq!(bike, Bike::InUse(env::predecessor_account_id()));
+
+        // バイク返却, 状態チェック
+        bike.return_bike();
+        assert_eq!(bike, Bike::Available);
+
+        //TODO: use_bike -> use
+        // バイク点検, 状態チェック
+        bike.inspect_bike();
+        assert_eq!(bike, Bike::Cleaning(env::predecessor_account_id()));
+
+        // バイク返却, 状態チェック
+        bike.return_bike();
+        assert_eq!(bike, Bike::Available);
     }
 }
