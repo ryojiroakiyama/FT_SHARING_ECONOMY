@@ -40,17 +40,17 @@ impl Bike {
         *self == Bike::Available
     }
 
-    fn use_bike(&mut self) {
+    fn be_in_use(&mut self) {
         assert!(self.available(), "Not available");
         *self = Bike::InUse(env::predecessor_account_id());
     }
 
-    fn inspect_bike(&mut self) {
+    fn be_inspected(&mut self) {
         assert!(self.available(), "Not available");
         *self = Bike::Inspection(env::predecessor_account_id());
     }
 
-    fn return_bike(&mut self) {
+    fn be_returned(&mut self) {
         assert!(
             *self == Bike::InUse(env::predecessor_account_id())
                 || *self == Bike::Inspection(env::predecessor_account_id()),
@@ -106,15 +106,15 @@ impl Contract {
     }
 
     pub fn use_bike(&mut self, index: usize) {
-        self.bikes[index].use_bike();
+        self.bikes[index].be_in_use();
     }
 
     pub fn inspect_bike(&mut self, index: usize) {
-        self.bikes[index].inspect_bike();
+        self.bikes[index].be_inspected();
     }
 
     pub fn return_bike(&mut self, index: usize) {
-        self.bikes[index].return_bike();
+        self.bikes[index].be_returned();
     }
 }
 
@@ -170,20 +170,20 @@ mod tests {
         assert!(bike.available());
 
         // バイク使用, 状態チェック
-        bike.use_bike();
+        bike.be_in_use();
         assert_eq!(bike, Bike::InUse(env::predecessor_account_id()));
 
         // バイク返却, 状態チェック
-        bike.return_bike();
+        bike.be_returned();
         assert_eq!(bike, Bike::Available);
 
         //TODO: use_bike -> use
         // バイク点検, 状態チェック
-        bike.inspect_bike();
+        bike.be_inspected();
         assert_eq!(bike, Bike::Inspection(env::predecessor_account_id()));
 
         // バイク返却, 状態チェック
-        bike.return_bike();
+        bike.be_returned();
         assert_eq!(bike, Bike::Available);
     }
 
@@ -191,20 +191,20 @@ mod tests {
     #[should_panic(expected = "Not available")]
     fn duplicate_use() {
         let mut bike = Bike::InUse(env::predecessor_account_id());
-        bike.use_bike();
+        bike.be_in_use();
     }
 
     #[test]
     #[should_panic(expected = "Not available")]
     fn duplicate_inspect() {
         let mut bike = Bike::InUse(env::predecessor_account_id());
-        bike.inspect_bike();
+        bike.be_inspected();
     }
 
     #[test]
     #[should_panic(expected = "Not in use or inspection")]
     fn duplicate_return() {
         let mut bike = Bike::Available;
-        bike.return_bike();
+        bike.be_returned();
     }
 }
