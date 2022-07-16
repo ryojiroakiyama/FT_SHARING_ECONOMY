@@ -50,6 +50,14 @@ impl Default for Bike {
     }
 }
 
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug)]
+#[serde(crate = "near_sdk::serde")]
+pub struct BikeForFrontEnd {
+    available: bool,
+    in_use: bool,
+    cleaning: bool,
+}
+
 // Define the contract structure
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -95,9 +103,19 @@ impl Contract {
         self.message = message;
     }
 
-    // TODO: アカウントに合わせて整形した(各ブール値もつけたものを返す)
-    pub fn get_bikes(&self) -> &[Bike] {
-        &self.bikes
+    // TODO: iter使ったもっと楽な書き方あるはず
+    pub fn get_bikes(&self) -> Vec<BikeForFrontEnd> {
+        let mut v = Vec::new();
+        let mut index = 0;
+        while index < self.bikes.len() {
+            v.push(BikeForFrontEnd {
+                available: self.available(index),
+                in_use: self.in_use(index),
+                cleaning: self.cleaning(index),
+            });
+            index += 1;
+        }
+        v
     }
 
     // 使用可能かどうか

@@ -1,5 +1,5 @@
 import 'regenerator-runtime/runtime'
-import React from 'react'
+import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
@@ -17,6 +17,8 @@ export default function App() {
   // after submitting the form, we want to show Notification
   const [showNotification, setShowNotification] = React.useState(false)
 
+  const [bikes, setBikes] = useState([]);
+
   // The useEffect hook can be used to fire side-effects during render
   // Learn more: https://reactjs.org/docs/hooks-intro.html
   React.useEffect(
@@ -29,6 +31,7 @@ export default function App() {
       get_bikes()
         .then(bikesFromContract => {
           console.log(bikesFromContract)
+          setBikes(bikesFromContract)
         })
     },
 
@@ -159,6 +162,32 @@ export default function App() {
             </div>
           </fieldset>
         </form>
+        {/*TODO: returnボタンが誰でも出るのを変える */}
+        {bikes.map((bike, index) => {
+          return (
+            <div style={{ display: 'flex' }}>
+                {index}: bike
+              <button
+                disabled={!bike.available}
+                style={{ borderRadius: '5px 5px 5px 5px' }}
+              >
+                use
+              </button>
+              <button
+                disabled={!(bike.in_use || bike.cleaning)}
+                style={{ borderRadius: '5px 5px 5px 5px' }}
+              >
+                return
+              </button>
+              <button
+                disabled={bike.available}
+                style={{ borderRadius: '5px 5px 5px 5px' }}
+              >
+                clean
+              </button>
+            </div>
+          );
+        })}
         <p>
           Look at that! A Hello World app! This greeting is stored on the NEAR blockchain. Check it out:
         </p>
