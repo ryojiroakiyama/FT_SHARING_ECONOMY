@@ -14,11 +14,8 @@ use near_sdk::{
 
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
-//TODO: initで指定した数のvecにしたい
+//TODO: initで指定した数のsizeにしたい
 const NUMBER_OF_BIKES: usize = 5;
-
-const USE_AMOUNT: u128 = 4_000_000_000_000_000_000_000_000;
-const REPAIR_AMOUNT: u128 = 2_000_000_000_000_000_000_000_000;
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
@@ -50,6 +47,7 @@ impl Bike {
         *self = Bike::Inspection(env::predecessor_account_id());
     }
 
+    //TODO: match文でエラー内容分ける
     fn be_returned(&mut self) {
         assert!(
             *self == Bike::InUse(env::predecessor_account_id())
