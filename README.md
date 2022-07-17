@@ -1,3 +1,10 @@
+# First steps
+- [getting start](https://www.near-sdk.io/zero-to-hero/basics/set-up-skeleton)
+- make project
+```
+npx create-near-app myproject --frontend react --contract rust
+```
+
 near-blank-project
 ==================
 
