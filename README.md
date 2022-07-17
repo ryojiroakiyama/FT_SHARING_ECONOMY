@@ -22,8 +22,45 @@ rustup target add wasm32-unknown-unknown
 ```
 - make project
 ```
+// build command ref
+RUSTFLAGS='-C link-arg=-s' cargo build --target wasm32-unknown-unknown --release
+
+// make project
 npx create-near-app myproject --frontend react --contract rust
 ```
+
+# near-cli
+```
+export ID=account.testnet
+
+// create sub account
+near create-account sub.$ID --masterAccount $ID --initialBalance 1
+
+// check account state
+// Note the code_hash here is all ones. This indicates that there is no contract deployed to this account.
+near state
+
+// deploy
+near deploy sub.$ID --wasmFile [wasm file path]
+
+// call view func
+near view sub.$ID [view func name]
+
+// call mut func
+// because of mut func, have to signin, so specify --accountID to use for signin
+// cli use the credentials files
+near call sub.$ID [func name] '{"arg name": "arg value"}' --accountId $ID
+
+// call mut func on windows
+near call sub.$ID [func name] "{\"arg name\": \"arg value\"}" --accountId $ID
+
+// delete account
+near delete sub.$ID $ID
+
+// curl to RPC endpoint
+curl -d '{"jsonrpc": "2.0", "method": "query", "id": "see-state", "params": {"request_type": "view_state", "finality": "final", "account_id": "sub.$ID", "prefix_base64": ""}}' -H 'Content-Type: application/json' https://rpc.testnet.near.org 
+```
+
 
 near-blank-project
 ==================
