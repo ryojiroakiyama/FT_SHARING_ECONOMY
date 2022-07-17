@@ -1,5 +1,25 @@
 # First steps
-- [getting start](https://www.near-sdk.io/zero-to-hero/basics/set-up-skeleton)
+- create [testnet account](https://wallet.testnet.near.org/)
+- near-cli
+```
+npm install -g near-cli
+
+// confirm
+near
+
+// create a full-access key on hard dirve (~/.near-credetials)
+// generate a key pair:
+//  private key -> tucked away in a JSON file
+//  public key -> send as a URL parameter to NEAR Wallet, add a full access key to the account
+near lgin
+```
+- Rust
+```
+curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+
+// Smart contracts compile to WebAssembly (Wasm) so we'll add the toolchain for Rust
+rustup target add wasm32-unknown-unknown
+```
 - make project
 ```
 npx create-near-app myproject --frontend react --contract rust
