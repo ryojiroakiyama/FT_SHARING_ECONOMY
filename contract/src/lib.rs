@@ -10,7 +10,7 @@ use near_sdk::{
 //TODO: アカウント所持者はバイクの数を増やせる
 //TODO: 使用しているユーザにしかリターンボタンを見せないようにする
 
-// TODO: 送金する
+// TODO: ユーザ間送金機能つける
 
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
@@ -99,6 +99,7 @@ impl Contract {
         self.message = message;
     }
 
+    //TODO: accountIdのstringも受け取って, returnなどについても用意する
     pub fn get_bike_states(&self) -> Vec<bool> {
         self.bikes.iter().map(|bike| bike.available()).collect()
     }
