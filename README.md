@@ -58,7 +58,11 @@ near call sub.$ID [func name] "{\"arg name\": \"arg value\"}" --accountId $ID
 near delete sub.$ID $ID
 
 // curl to RPC endpoint
-curl -d '{"jsonrpc": "2.0", "method": "query", "id": "see-state", "params": {"request_type": "view_state", "finality": "final", "account_id": "sub.$ID", "prefix_base64": ""}}' -H 'Content-Type: application/json' https://rpc.testnet.near.org 
+curl -d '{"jsonrpc": "2.0", "method": "query", "id": "see-state", "params": {"request_type": "view_state", "finality": "final", "account_id": "sub.$ID", "prefix_base64": ""}}' -H 'Content-Type: application/json' https://rpc.testnet.near.org
+
+// Batch Action
+// deploy and init
+near deploy sub.$ID --wasmFile [wasm file path] --initFunction 'new(func name)'  --initArgs '{"arg_name": "arg_value"}'
 ```
 
 
