@@ -104,7 +104,7 @@ impl Contract {
         // attach a function call action to the ActionReceipt
         env::promise_batch_action_function_call(
             promise_id, // associate the function call with the above Receipt via promise_id
-            &"ft_transfer".to_string(), // the function call will invoke the ft_balance_of method on the wrap.testnet
+            &"ft_balance_of".to_string(), // the function call will invoke the ft_balance_of method on the wrap.testnet
             &serde_json::json!({ "account_id": "my_ft.testnet".to_string() }) // method arguments
                 .to_string()
                 .into_bytes(),
