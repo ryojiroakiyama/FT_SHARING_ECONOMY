@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bike_states, use_bike, return_bike, inspect_bike} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bike_states, use_bike, return_bike, inspect_bike, cross_method} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -190,6 +190,12 @@ export default function App() {
             </div>
           </fieldset>
         </form>
+        <button
+          onClick={() => cross_method()}
+          style={{ borderRadius: '5px 5px 5px 5px' }}
+        >
+          cross
+        </button>
         {inProcess === true ? (
           <p> in process... </p>
         ):(

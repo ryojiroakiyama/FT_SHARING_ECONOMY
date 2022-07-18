@@ -1,9 +1,12 @@
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    env, log, near_bindgen,
+    env,
+    json_types::U128,
+    log, near_bindgen,
     serde::{Deserialize, Serialize},
-    AccountId,
+    serde_json, AccountId, PromiseResult,
 };
+use std::convert::TryInto;
 
 //TODO: 追加機能集
 //TODO: ユーザ1人一つしか使用できないようにする
@@ -14,7 +17,7 @@ use near_sdk::{
 
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
-//TODO: initで指定した数のsizeにしたい
+
 const NUMBER_OF_BIKES: usize = 5;
 
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
@@ -37,6 +40,7 @@ impl Bike {
         *self == Bike::Available
     }
 
+    // TODO: 指定することでメソッドを使える型を限定できるかも
     fn be_in_use(&mut self) {
         assert!(self.available(), "Not available");
         *self = Bike::InUse(env::predecessor_account_id());
@@ -58,6 +62,8 @@ impl Bike {
     }
 }
 
+// TODO: contractの名前変える
+// TODO: accountIDを持って, 特手のアカウントからの処理ができるようにする
 // Define the contract structure
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -66,6 +72,7 @@ pub struct Contract {
     bikes: Vec<Bike>,
 }
 
+// TODO: initで指定した数のバイクを作る構成にする
 // Define the default, which automatically initializes the contract
 impl Default for Contract {
     fn default() -> Self {
@@ -87,6 +94,64 @@ impl Default for Contract {
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
+    pub fn cross_method(&mut self) {
+        let contract_accountid = "my_ft.testnet".to_string();
+        // Create a new promise, which will create a new (empty) ActionReceipt
+        let promise_id = env::promise_batch_create(
+            &contract_accountid.try_into().unwrap(), // the recipient of this ActionReceipt (contract account id)
+        );
+
+        // attach a function call action to the ActionReceipt
+        env::promise_batch_action_function_call(
+            promise_id, // associate the function call with the above Receipt via promise_id
+            &"ft_transfer".to_string(), // the function call will invoke the ft_balance_of method on the wrap.testnet
+            &serde_json::json!({ "account_id": "my_ft.testnet".to_string() }) // method arguments
+                .to_string()
+                .into_bytes(),
+            0,                                // amount of yoctoNEAR to attach
+            near_sdk::Gas(5_000_000_000_000), // gas to attach
+        );
+
+        // Create another promise, which will create another (empty) ActionReceipt.
+        // This time, the ActionReceipt is dependent on the previous receipt
+        let callback_promise_id = env::promise_batch_then(
+            promise_id, // postpone until a DataReceipt associated with promise_id is received
+            &env::current_account_id(), // the recipient of this ActionReceipt (&self)
+        );
+
+        // attach a function call action to the ActionReceipt
+        env::promise_batch_action_function_call(
+            callback_promise_id, // associate the function call with callback_promise_id
+            &"my_callback".to_string(), // the function call will be a callback function
+            b"{}",               // method arguments
+            0,                   // amount of yoctoNEAR to attach
+            near_sdk::Gas(5_000_000_000_000), // gas to attach
+        );
+
+        // return the resulting DataReceipt from callback_promise_id as the result of this function
+        env::promise_return(callback_promise_id);
+    }
+
+    pub fn my_callback(&self) -> String {
+        assert_eq!(env::promise_results_count(), 1, "This is a callback method");
+
+        // handle the result from the cross contract call this method is a callback for
+        match env::promise_result(0) {
+            PromiseResult::NotReady => unreachable!(),
+            PromiseResult::Failed => "oops!".to_string(),
+            PromiseResult::Successful(result) => {
+                let balance = near_sdk::serde_json::from_slice::<U128>(&result).unwrap();
+                if balance.0 > 100000 {
+                    log!("=============={}", balance.0);
+                    "Wow!".to_string()
+                } else {
+                    log!("-------------->{}", balance.0);
+                    "Hmmmm".to_string()
+                }
+            }
+        }
+    }
+
     // Public method - returns the greeting saved, defaulting to DEFAULT_MESSAGE
     pub fn get_greeting(&self) -> String {
         return self.message.clone();
@@ -203,5 +268,11 @@ mod tests {
     fn duplicate_return() {
         let mut bike = Bike::Available;
         bike.be_returned();
+    }
+
+    #[test]
+    fn cross() {
+        let contract = Contract::default();
+        contract.cross_method();
     }
 }
