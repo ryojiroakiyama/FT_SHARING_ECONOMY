@@ -16,7 +16,7 @@ const DEFAULT_MESSAGE: &str = "Hello";
 const NUMBER_OF_BIKES: usize = 5;
 
 // Bikeの状態
-#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, Debug, PartialEq)]
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
 pub enum Bike {
     Available,             // 使用可能
@@ -35,17 +35,17 @@ impl Default for Bike {
 impl Bike {
     // 使用可能かどうかチェック
     fn is_available(&self) -> bool {
-        *self == Bike::Available
+        self == &Bike::Available
     }
 
     // 指定アカウントによって使用中かどうかチェック
-    fn is_in_use_by(&self, account_id: AccountId) -> bool {
-        *self == Bike::InUse(account_id)
+    fn is_in_use_by(&self, account_id: &AccountId) -> bool {
+        self == &Bike::InUse(account_id.clone())
     }
 
     // 指定アカウントによって点検中かどうかチェック
-    fn is_inspected_by(&self, account_id: AccountId) -> bool {
-        *self == Bike::Inspection(account_id)
+    fn is_inspected_by(&self, account_id: &AccountId) -> bool {
+        self == &Bike::Inspection(account_id.clone())
     }
 
     // 使用中に状態を変更,
@@ -53,8 +53,8 @@ impl Bike {
     fn be_available(&mut self) {
         //predecessor_account_id(): コントラクトを呼び出しているアカウント
         assert!(
-            self.is_in_use_by(env::predecessor_account_id())
-                || self.is_inspected_by(env::predecessor_account_id()),
+            self.is_in_use_by(&env::predecessor_account_id())
+                || self.is_inspected_by(&env::predecessor_account_id()),
             "Not in use or inspection"
         );
         *self = Bike::Available;
@@ -73,13 +73,13 @@ impl Bike {
     }
 }
 
-//#[near_bindgen]
-//#[derive(BorshDeserialize, BorshSerialize)]
-//pub struct BikeInfoForOneUser {
-//    available: bool,
-//    using: bool,
-//    inspecting: bool,
-//}
+#[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct BikeInfoForAccount {
+    available: bool,
+    using: bool,
+    inspecting: bool,
+}
 
 // コントラクトの定義
 #[near_bindgen]
@@ -122,9 +122,17 @@ impl Contract {
         self.message = message;
     }
 
-    //TODO: accountIdのstringも受け取って, returnなどについても用意する
-    pub fn get_bike_states(&self) -> Vec<bool> {
-        self.bikes.iter().map(|bike| bike.is_available()).collect()
+    // 指定アカウントに関する各バイクの情報をベクターで返す
+    // TODO: 関数名, 構造体名変える
+    pub fn get_bike_states(&self, account_id: &AccountId) -> Vec<BikeInfoForAccount> {
+        self.bikes
+            .iter()
+            .map(|bike| BikeInfoForAccount {
+                available: bike.is_available(),
+                using: bike.is_in_use_by(account_id),
+                inspecting: bike.is_inspected_by(account_id),
+            })
+            .collect()
     }
 
     // 指定バイクを返却
@@ -152,7 +160,7 @@ mod tests {
         let contract = Contract::default();
         assert_eq!(contract.get_greeting(), "Hello".to_string());
         for bike in contract.bikes {
-            assert_eq!(bike, Bike::Available);
+            assert!(bike.is_available());
         }
     }
 
@@ -163,25 +171,73 @@ mod tests {
         assert_eq!(contract.get_greeting(), "howdy".to_string());
     }
 
+    // メソッドを呼び出しているアカウントの取得
+    fn caller() -> AccountId {
+        env::predecessor_account_id()
+    }
+
+    // caller()と別のアカウントを作成
+    fn another_caller() -> AccountId {
+        // caller()に接頭語"a"をつけて, 別のアカウントを表す文字列作成
+        let another_account_string = "a".to_string() + caller().as_str();
+        // 文字列からAccountId型に変更
+        another_account_string.try_into().unwrap()
+    }
+
+    //TODO: newで指定数用意
     // バイクの状態を変更して, get_bike_statesの結果を確認
     #[test]
     fn change_state_then_get_states() {
         let mut contract = Contract::default();
-        let index = 1;
 
         // 初期状態をチェック
-        for s in contract.get_bike_states() {
-            assert!(s);
+        for s in contract.get_bike_states(&caller()) {
+            assert!(s.available);
+            assert!(!s.using);
+            assert!(!s.inspecting);
         }
 
+        let idx_to_check = contract.bikes.len() - 1;
+
         // バイクを使用, 状態をチェック
-        contract.use_bike(index);
-        assert!(!contract.bikes[index].is_available());
+        contract.use_bike(idx_to_check);
+        // バイクを使用したユーザからみた情報
+        for (i, bike_info) in contract.get_bike_states(&caller()).iter().enumerate() {
+            if i == idx_to_check {
+                assert!(!bike_info.available);
+                assert!(bike_info.using);
+                assert!(!bike_info.inspecting);
+            } else {
+                assert!(bike_info.available);
+                assert!(!bike_info.using);
+                assert!(!bike_info.inspecting);
+            }
+        }
+
+        // 他のアカウントから見た情報
+        for (i, bike_info) in contract
+            .get_bike_states(&another_caller())
+            .iter()
+            .enumerate()
+        {
+            if i == idx_to_check {
+                assert!(!bike_info.available);
+                assert!(!bike_info.using);
+                assert!(!bike_info.inspecting);
+            } else {
+                assert!(bike_info.available);
+                assert!(!bike_info.using);
+                assert!(!bike_info.inspecting);
+            }
+        }
 
         // バイクを返却, 状態をチェック
-        contract.return_bike(index);
-        for s in contract.get_bike_states() {
-            assert!(s);
+        contract.return_bike(idx_to_check);
+        // 初期状態をチェック
+        for s in contract.get_bike_states(&caller()) {
+            assert!(s.available);
+            assert!(!s.using);
+            assert!(!s.inspecting);
         }
     }
 
@@ -194,7 +250,7 @@ mod tests {
 
         // バイク使用, 状態チェック
         bike.be_in_use();
-        assert!(bike.is_in_use_by(env::predecessor_account_id()));
+        assert!(bike.is_in_use_by(&caller()));
 
         // バイク返却, 状態チェック
         bike.be_available();
@@ -202,7 +258,7 @@ mod tests {
 
         // バイク点検, 状態チェック
         bike.be_inspection();
-        assert!(bike.is_inspected_by(env::predecessor_account_id()));
+        assert!(bike.is_inspected_by(&caller()));
 
         // バイク返却, 状態チェック
         bike.be_available();
@@ -213,7 +269,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Not available")]
     fn duplicate_use() {
-        let mut bike = Bike::InUse(env::predecessor_account_id());
+        let mut bike = Bike::InUse(caller());
         bike.be_in_use();
     }
 
@@ -221,7 +277,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Not available")]
     fn duplicate_inspect() {
-        let mut bike = Bike::Inspection(env::predecessor_account_id());
+        let mut bike = Bike::Inspection(caller());
         bike.be_inspection();
     }
 
@@ -237,10 +293,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Not in use or inspection")]
     fn return_by_other_account() {
-        // env::predecessor_account_id()に接頭語"a"をつけて, 別のアカウントを表す文字列作成
-        let other_account_string = "a".to_string() + env::predecessor_account_id().as_str();
-        // 文字列からAccountId型に変更して, other_accountによって使用中という状態を再現
-        let mut bike = Bike::InUse(other_account_string.try_into().unwrap());
+        let mut bike = Bike::InUse(another_caller());
         bike.be_available();
     }
 }
