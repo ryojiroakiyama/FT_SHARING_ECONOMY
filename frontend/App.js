@@ -40,7 +40,6 @@ export default function App() {
     // The second argument to useEffect tells React when to re-run the effect
     // Use an empty array to specify "only run on first render"
     // This works because signing into NEAR Wallet reloads the page
-    //TODO: なんで再レンダリングするの？？
     []
   )
 
