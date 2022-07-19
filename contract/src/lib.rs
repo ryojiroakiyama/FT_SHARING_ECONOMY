@@ -236,9 +236,11 @@ mod tests {
     // 別のアカウントが使用中に使用可能に変更->パニックを起こすか確認
     #[test]
     #[should_panic(expected = "Not in use or inspection")]
-    fn return_by_another_account() {
-        let mut bike = Bike::InUse("another.testnet".parse().unwrap());
-        // env::predecessor_account_id() == "bob.testnet"
+    fn return_by_other_account() {
+        // env::predecessor_account_id()に接頭語"a"をつけて, 別のアカウントを表す文字列作成
+        let other_account_string = "a".to_string() + env::predecessor_account_id().as_str();
+        // 文字列からAccountId型に変更して, other_accountによって使用中という状態を再現
+        let mut bike = Bike::InUse(other_account_string.try_into().unwrap());
         bike.be_available();
     }
 }
