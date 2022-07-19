@@ -73,8 +73,8 @@ impl Bike {
     }
 }
 
-#[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
+#[serde(crate = "near_sdk::serde")]
 pub struct BikeInfoForAccount {
     available: bool,
     using: bool,
