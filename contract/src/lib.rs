@@ -37,17 +37,18 @@ impl Bike {
         self == &Bike::Available
     }
 
-    fn who_is_using(&self) -> AccountId {
+    // 本当にoptionがnull or valueになるかは定義を調べられていない
+    fn who_is_using(&self) -> Option<AccountId> {
         match self {
-            Bike::InUse(account_id) => account_id.clone(),
-            _ => panic!("Not in use"),
+            Bike::InUse(account_id) => Some(account_id.clone()),
+            _ => None,
         }
     }
 
-    fn who_is_inspecting(&self) -> AccountId {
+    fn who_is_inspecting(&self) -> Option<AccountId> {
         match self {
-            Bike::Inspection(account_id) => account_id.clone(),
-            _ => panic!("Not under inspection"),
+            Bike::InUse(account_id) => Some(account_id.clone()),
+            _ => None,
         }
     }
 
@@ -58,10 +59,15 @@ impl Bike {
         let caller = env::predecessor_account_id();
         match self {
             Bike::Available => panic!("Already available"),
-            Bike::InUse(_) => assert_eq!(self.who_is_using(), caller, "Wrong account"),
-            Bike::Inspection(_) => assert_eq!(self.who_is_inspecting(), caller, "Wrong account"),
-        }
-        *self = Bike::Available;
+            Bike::InUse(account_id) => {
+                assert_eq!(account_id.clone(), caller, "Wrong account");
+                *self = Bike::Available
+            }
+            Bike::Inspection(account_id) => {
+                assert_eq!(account_id.clone(), caller, "Wrong account");
+                *self = Bike::Available
+            }
+        };
     }
 
     // 使用中に状態を変更
@@ -118,6 +124,7 @@ impl Contract {
         self.message = message;
     }
 
+    // TODO: これもなしで, front側で色々呼び出してもらってそっちで整形してもらうかも
     // TODO: 関数名, 構造体名変える
     // 各バイクが使用可能かどうかをベクターで返却
     pub fn get_bike_states(&self) -> Vec<bool> {
@@ -125,12 +132,12 @@ impl Contract {
     }
 
     // 誰がバイクを使用中かを返却
-    pub fn who_is_using(&mut self, index: usize) -> AccountId {
+    pub fn who_is_using(&self, index: usize) -> Option<AccountId> {
         self.bikes[index].who_is_using()
     }
 
     // 誰がバイクを点検中かを返却
-    pub fn who_is_inspecting(&mut self, index: usize) -> AccountId {
+    pub fn who_is_inspecting(&self, index: usize) -> Option<AccountId> {
         self.bikes[index].who_is_inspecting()
     }
 
