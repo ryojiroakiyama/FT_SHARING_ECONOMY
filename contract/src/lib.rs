@@ -11,11 +11,14 @@ use near_sdk::{
 
 // TODO: ユーザ間送金機能つける
 
+//TODO: pubの付け方
+
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
 const NUMBER_OF_BIKES: usize = 5;
 
 // Bikeの状態
+// enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, PartialEq)]
 #[serde(crate = "near_sdk::serde")]
 pub enum Bike {
@@ -24,6 +27,7 @@ pub enum Bike {
     Inspection(AccountId), // AccountIdによって点検中
 }
 
+//TODO: これいるのか
 // デフォルトでは使用可能状態
 impl Default for Bike {
     fn default() -> Self {
@@ -31,6 +35,7 @@ impl Default for Bike {
     }
 }
 
+//TODO: enumのメソッド消す
 // Bikeに関する機能をメソッドでまとめる
 impl Bike {
     fn is_available(&self) -> bool {
@@ -83,6 +88,18 @@ impl Bike {
     }
 }
 
+// フロント側へ送信するバイクの情報
+// enum Bikeからフロント側(java script)で理解しやすい構造体に整形した方が, フロント側での開発が楽だと判断したので用意
+#[derive(Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct BikeForFront {
+    available: bool,
+    in_use: bool,
+    used_by: Option<AccountId>,
+    inspection: bool,
+    inspected_by: Option<AccountId>,
+}
+
 // コントラクトの定義
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -126,8 +143,31 @@ impl Contract {
 
     // TODO: 関数名, 構造体名変える
     // 各バイクが使用可能かどうかをベクターで返却
-    pub fn get_bike_states(&self) -> Vec<bool> {
-        self.bikes.iter().map(|bike| bike.is_available()).collect()
+    pub fn get_bike_states(&self) -> Vec<BikeForFront> {
+        self.bikes
+            .iter()
+            .map(|bike| {
+                let mut bike_for_front = BikeForFront {
+                    available: false,
+                    in_use: false,
+                    used_by: None,
+                    inspection: false,
+                    inspected_by: None,
+                };
+                match bike {
+                    Bike::Available => bike_for_front.available = true,
+                    Bike::InUse(account_id) => {
+                        bike_for_front.in_use = true;
+                        bike_for_front.used_by = Some(account_id.clone());
+                    }
+                    Bike::Inspection(account_id) => {
+                        bike_for_front.inspection = true;
+                        bike_for_front.inspected_by = Some(account_id.clone());
+                    }
+                };
+                bike_for_front
+            })
+            .collect()
     }
 
     // 誰がバイクを使用中かを返却

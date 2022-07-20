@@ -192,25 +192,27 @@ export default function App() {
         {inProcess === true ? (
           <p> in process... </p>
         ):(
-          bikes.map((available, index) => {
+          bikes.map((bike, index) => {
             return (
               <div style={{ display: 'flex' }}>
                   {index}: bike
                 <button
-                  disabled={!available}
+                  disabled={!bike.available}
                   onClick={() => callContractMethod(use_bike, index)}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   use
                 </button>
                 <button
-                  disabled={!available}
+                  disabled={!bike.available}
                   onClick={() => callContractMethod(inspect_bike, index)}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   inspect
                 </button>
                 <button
+                  disabled={!(bike.in_use && bike.used_by === window.accountId
+                              || bike.inspection && bike.inspected_by === window.accountId)}
                   onClick={() => callContractMethod(return_bike, index)}
                       style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
