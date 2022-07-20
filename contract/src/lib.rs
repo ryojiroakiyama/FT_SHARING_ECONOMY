@@ -37,7 +37,7 @@ impl Bike {
         self == &Bike::Available
     }
 
-    // 本当にoptionがnull or valueになるかは定義を調べられていない
+    // TODO: 本当にoptionがnull or valueになるかは定義を調べられていない
     fn who_is_using(&self) -> Option<AccountId> {
         match self {
             Bike::InUse(account_id) => Some(account_id.clone()),
@@ -124,7 +124,6 @@ impl Contract {
         self.message = message;
     }
 
-    // TODO: これもなしで, front側で色々呼び出してもらってそっちで整形してもらうかも
     // TODO: 関数名, 構造体名変える
     // 各バイクが使用可能かどうかをベクターで返却
     pub fn get_bike_states(&self) -> Vec<bool> {
@@ -178,6 +177,7 @@ mod tests {
     }
 
     // メソッドを呼び出しているアカウントの取得
+    // デフォルトでは"bob.testnet"みたいです
     fn caller() -> AccountId {
         env::predecessor_account_id()
     }
@@ -190,7 +190,6 @@ mod tests {
         another_account_string.try_into().unwrap()
     }
 
-    //TODO: newで指定数用意
     // バイクの状態を変更して, bikeの状態を確認
     #[test]
     fn change_state_then_get_states() {
