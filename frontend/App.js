@@ -244,6 +244,7 @@ export default function App() {
   )
 }
 
+//TODO: メソッド名が違う
 // this component gets rendered by App after the form is submitted
 function Notification() {
   const { networkId } = getConfig(process.env.NODE_ENV || 'development')

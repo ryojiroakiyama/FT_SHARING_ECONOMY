@@ -12,6 +12,7 @@ use near_sdk::{
 // TODO: ユーザ間送金機能つける
 
 //TODO: pubの付け方
+// TODO: ログ
 
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
@@ -20,7 +21,7 @@ const NUMBER_OF_BIKES: usize = 5;
 //TODO: いらないderiveを消す
 // Bikeの状態
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
-#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, PartialEq)]
+#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
 #[serde(crate = "near_sdk::serde")]
 pub enum Bike {
     Available,             // 使用可能
@@ -33,59 +34,6 @@ pub enum Bike {
 impl Default for Bike {
     fn default() -> Self {
         Bike::Available
-    }
-}
-
-//TODO: enumのメソッド消す
-// Bikeに関する機能をメソッドでまとめる
-impl Bike {
-    fn is_available(&self) -> bool {
-        self == &Bike::Available
-    }
-
-    // TODO: 本当にoptionがnull or valueになるかは定義を調べられていない
-    fn who_is_using(&self) -> Option<AccountId> {
-        match self {
-            Bike::InUse(account_id) => Some(account_id.clone()),
-            _ => None,
-        }
-    }
-
-    fn who_is_inspecting(&self) -> Option<AccountId> {
-        match self {
-            Bike::Inspection(account_id) => Some(account_id.clone()),
-            _ => None,
-        }
-    }
-
-    // 使用可能に状態を変更
-    // 変更ができない場合はなるべく早くpanicを起こすことでトランザクション時間を短くする
-    fn be_available(&mut self) {
-        //predecessor_account_id(): このコントラクトを呼び出しているアカウントを取得
-        let caller = env::predecessor_account_id();
-        match self {
-            Bike::Available => panic!("Already available"),
-            Bike::InUse(account_id) => {
-                assert_eq!(account_id.clone(), caller, "Wrong account");
-                *self = Bike::Available
-            }
-            Bike::Inspection(account_id) => {
-                assert_eq!(account_id.clone(), caller, "Wrong account");
-                *self = Bike::Available
-            }
-        };
-    }
-
-    // 使用中に状態を変更
-    fn be_in_use(&mut self) {
-        assert!(self.is_available(), "Not available");
-        *self = Bike::InUse(env::predecessor_account_id());
-    }
-
-    // 点検中に状態を変更
-    fn be_inspection(&mut self) {
-        assert!(self.is_available(), "Not available");
-        *self = Bike::Inspection(env::predecessor_account_id());
     }
 }
 
@@ -180,29 +128,40 @@ impl Contract {
             .collect()
     }
 
-    // 誰がバイクを使用中かを返却
-    pub fn who_is_using(&self, index: usize) -> Option<AccountId> {
-        self.bikes[index].who_is_using()
-    }
+    // 以下バイクの状態を変更するメソッド
+    // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減する
 
-    // 誰がバイクを点検中かを返却
-    pub fn who_is_inspecting(&self, index: usize) -> Option<AccountId> {
-        self.bikes[index].who_is_inspecting()
-    }
-
-    // 指定バイクを返却
-    pub fn return_bike(&mut self, index: usize) {
-        self.bikes[index].be_available();
-    }
-
-    // 指定バイクを使用
+    // 使用可 -> 使用中
     pub fn use_bike(&mut self, index: usize) {
-        self.bikes[index].be_in_use();
+        match &self.bikes[index] {
+            Bike::Available => self.bikes[index] = Bike::InUse(env::predecessor_account_id()),
+            _ => panic!("Not available"),
+        }
     }
 
-    // 指定バイクを点検
+    // 使用可 -> 点検中
     pub fn inspect_bike(&mut self, index: usize) {
-        self.bikes[index].be_inspection();
+        match &self.bikes[index] {
+            Bike::Available => self.bikes[index] = Bike::Inspection(env::predecessor_account_id()),
+            _ => panic!("Not available"),
+        }
+    }
+
+    // 使用中or点検中 -> 使用可
+    pub fn return_bike(&mut self, index: usize) {
+        //predecessor_account_id(): このコントラクトを呼び出しているアカウントを取得
+        let caller = env::predecessor_account_id();
+        match &self.bikes[index] {
+            Bike::Available => panic!("Already available"),
+            Bike::InUse(account_id) => {
+                assert_eq!(account_id.clone(), caller, "Wrong account");
+                self.bikes[index] = Bike::Available
+            }
+            Bike::Inspection(account_id) => {
+                assert_eq!(account_id.clone(), caller, "Wrong account");
+                self.bikes[index] = Bike::Available
+            }
+        };
     }
 }
 
