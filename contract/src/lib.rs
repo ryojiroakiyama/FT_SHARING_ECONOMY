@@ -47,7 +47,7 @@ impl Bike {
 
     fn who_is_inspecting(&self) -> Option<AccountId> {
         match self {
-            Bike::InUse(account_id) => Some(account_id.clone()),
+            Bike::Inspection(account_id) => Some(account_id.clone()),
             _ => None,
         }
     }
@@ -209,7 +209,7 @@ mod tests {
         for (i, is_available) in contract.get_bike_states().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
-                assert_eq!(contract.bikes[i].who_is_using(), caller())
+                assert_eq!(contract.bikes[i].who_is_using().unwrap(), caller())
             } else {
                 assert!(is_available);
             }
@@ -235,7 +235,7 @@ mod tests {
         for (i, is_available) in contract.get_bike_states().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
-                assert_eq!(contract.bikes[i].who_is_inspecting(), caller())
+                assert_eq!(contract.bikes[i].who_is_inspecting().unwrap(), caller())
             } else {
                 assert!(is_available);
             }
@@ -265,7 +265,7 @@ mod tests {
 
         // バイク使用, 状態チェック
         bike.be_in_use();
-        assert_eq!(bike.who_is_using(), caller());
+        assert_eq!(bike.who_is_using().unwrap(), caller());
 
         // バイク返却, 状態チェック
         bike.be_available();
@@ -273,7 +273,7 @@ mod tests {
 
         // バイク点検, 状態チェック
         bike.be_inspection();
-        assert_eq!(bike.who_is_inspecting(), caller());
+        assert_eq!(bike.who_is_inspecting().unwrap(), caller());
 
         // バイク返却, 状態チェック
         bike.be_available();
