@@ -24,12 +24,6 @@ enum Bike {
     Inspection(AccountId), // AccountIdによって点検中
 }
 
-impl Default for Bike {
-    fn default() -> Self {
-        Bike::Available
-    }
-}
-
 // Bikeの情報をフロントエンドへ送信する(Json形式へSerialize)際に使用する構造体
 // フロント側で理解しやすいデータ型を用意した方が全体の開発が楽だと判断したので用意
 #[derive(Serialize)]
@@ -40,18 +34,6 @@ pub struct JsonBike {
     used_by: Option<AccountId>,
     inspection: bool,
     inspected_by: Option<AccountId>,
-}
-
-impl Default for JsonBike {
-    fn default() -> Self {
-        Self {
-            available: false,
-            in_use: false,
-            used_by: None,
-            inspection: false,
-            inspected_by: None,
-        }
-    }
 }
 
 // コントラクトの定義
@@ -73,7 +55,7 @@ impl Default for Contract {
                 let mut v = Vec::new();
                 let mut index = 0;
                 while index < NUMBER_OF_BIKES {
-                    v.push(Bike::default());
+                    v.push(Bike::Available);
                     index += 1;
                 }
                 v
@@ -103,8 +85,14 @@ impl Contract {
         self.bikes
             .iter()
             .map(|bike| {
-                // デフォルトでは全てがfalse or None
-                let mut json_bike = JsonBike::default();
+                // 全てをfalse or Noneで用意
+                let mut json_bike = JsonBike {
+                    available: false,
+                    in_use: false,
+                    used_by: None,
+                    inspection: false,
+                    inspected_by: None,
+                };
                 // bikeの状態によって各変数を編集する
                 match bike {
                     Bike::Available => json_bike.available = true,
