@@ -1,7 +1,7 @@
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, log, near_bindgen,
-    serde::{Deserialize, Serialize},
+    serde::Serialize,
     AccountId,
 };
 
@@ -11,26 +11,19 @@ use near_sdk::{
 
 // TODO: ユーザ間送金機能つける
 
-//TODO: pubの付け方
-// TODO: ログ
-
 // Define the default message
 const DEFAULT_MESSAGE: &str = "Hello";
 const NUMBER_OF_BIKES: usize = 5;
 
-//TODO: いらないderiveを消す
 // Bikeの状態
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
-#[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize)]
-#[serde(crate = "near_sdk::serde")]
-pub enum Bike {
+#[derive(BorshDeserialize, BorshSerialize)]
+enum Bike {
     Available,             // 使用可能
     InUse(AccountId),      // AccountIdによって使用中
     Inspection(AccountId), // AccountIdによって点検中
 }
 
-//TODO: これいるのか
-// デフォルトでは使用可能状態
 impl Default for Bike {
     fn default() -> Self {
         Bike::Available
@@ -38,7 +31,7 @@ impl Default for Bike {
 }
 
 // Bikeの情報をフロントエンドへ送信する(Json形式へSerialize)際に使用する構造体
-// フロント側で理解しやすい構造体に整形した方が開発が楽だと判断したので用意
+// フロント側で理解しやすいデータ型を用意した方が全体の開発が楽だと判断したので用意
 #[derive(Serialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct JsonBike {
@@ -69,10 +62,11 @@ pub struct Contract {
     bikes: Vec<Bike>,
 }
 
-//TODO: initに変更して, 指定した数のsizeでvector作る, DefaultOnPanicにする
+//　TODO: initに変更して, 指定した数のsizeでvector作る, DefaultOnPanicにする
 // TODO: 引数でアカウントIDをもらって保存するようにする
 impl Default for Contract {
     fn default() -> Self {
+        log!("initialize Contract");
         Self {
             message: DEFAULT_MESSAGE.to_string(),
             bikes: {
@@ -103,9 +97,9 @@ impl Contract {
         self.message = message;
     }
 
-    // TODO: 関数名, 構造体名変える
     // 各バイクが使用可能かどうかをベクターで返却
-    pub fn get_json_bikes(&self) -> Vec<JsonBike> {
+    pub fn get_bikes(&self) -> Vec<JsonBike> {
+        log!("get_bikes");
         self.bikes
             .iter()
             .map(|bike| {
@@ -129,10 +123,11 @@ impl Contract {
     }
 
     // 以下バイクの状態を変更するメソッド
-    // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減する
+    // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため
 
     // 使用可 -> 使用中
     pub fn use_bike(&mut self, index: usize) {
+        log!("use_bike");
         match &self.bikes[index] {
             Bike::Available => self.bikes[index] = Bike::InUse(env::predecessor_account_id()),
             _ => panic!("Not available"),
@@ -141,6 +136,7 @@ impl Contract {
 
     // 使用可 -> 点検中
     pub fn inspect_bike(&mut self, index: usize) {
+        log!("inspect_bike");
         match &self.bikes[index] {
             Bike::Available => self.bikes[index] = Bike::Inspection(env::predecessor_account_id()),
             _ => panic!("Not available"),
@@ -149,6 +145,7 @@ impl Contract {
 
     // 使用中or点検中 -> 使用可
     pub fn return_bike(&mut self, index: usize) {
+        log!("return_bike");
         //predecessor_account_id(): このコントラクトを呼び出しているアカウントを取得
         let caller = env::predecessor_account_id();
         match &self.bikes[index] {
@@ -205,7 +202,7 @@ mod tests {
         let mut contract = Contract::default();
 
         // 初期状態をチェック
-        for is_available in contract.get_json_bikes() {
+        for is_available in contract.get_bikes() {
             assert!(is_available);
         }
 
@@ -214,7 +211,7 @@ mod tests {
         // バイクを使用, 状態をチェック
         contract.use_bike(idx_to_check);
         // バイクを使用したユーザからみた情報
-        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
+        for (i, is_available) in contract.get_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
                 assert_eq!(contract.bikes[i].who_is_using().unwrap(), caller())
@@ -223,7 +220,7 @@ mod tests {
             }
         }
         // 他のアカウントから見た情報
-        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
+        for (i, is_available) in contract.get_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
             } else {
@@ -233,14 +230,14 @@ mod tests {
 
         // バイクを返却, 状態をチェック
         contract.return_bike(idx_to_check);
-        for is_available in contract.get_json_bikes() {
+        for is_available in contract.get_bikes() {
             assert!(is_available);
         }
 
         // バイクを点検, 状態をチェック
         contract.inspect_bike(idx_to_check);
         // バイクを使用したユーザからみた情報
-        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
+        for (i, is_available) in contract.get_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
                 assert_eq!(contract.bikes[i].who_is_inspecting().unwrap(), caller())
@@ -249,7 +246,7 @@ mod tests {
             }
         }
         // 他のアカウントから見た情報
-        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
+        for (i, is_available) in contract.get_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
             } else {
@@ -259,7 +256,7 @@ mod tests {
 
         // バイクを返却, 状態をチェック
         contract.return_bike(idx_to_check);
-        for is_available in contract.get_json_bikes() {
+        for is_available in contract.get_bikes() {
             assert!(is_available);
         }
     }
