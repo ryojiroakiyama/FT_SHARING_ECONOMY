@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bike_states, use_bike, return_bike, inspect_bike} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_json_bikes, use_bike, return_bike, inspect_bike} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -30,7 +30,7 @@ export default function App() {
         .then(greetingFromContract => {
           setGreeting(greetingFromContract)
         })
-      get_bike_states()
+      get_json_bikes()
         .then(bikesFromContract => {
           console.log(bikesFromContract)
           setBikes(bikesFromContract)
@@ -54,7 +54,7 @@ export default function App() {
         'Please make sure that you are signed in with the correct account'
       )
     }
-    get_bike_states()
+    get_json_bikes()
     .then(bikesFromContract => {
       console.log(bikesFromContract)
       setBikes(bikesFromContract)

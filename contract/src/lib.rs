@@ -17,6 +17,7 @@ use near_sdk::{
 const DEFAULT_MESSAGE: &str = "Hello";
 const NUMBER_OF_BIKES: usize = 5;
 
+//TODO: いらないderiveを消す
 // Bikeの状態
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
 #[derive(BorshDeserialize, BorshSerialize, Deserialize, Serialize, PartialEq)]
@@ -88,16 +89,28 @@ impl Bike {
     }
 }
 
-// フロント側へ送信するバイクの情報
-// enum Bikeからフロント側(java script)で理解しやすい構造体に整形した方が, フロント側での開発が楽だと判断したので用意
+// Bikeの情報をフロントエンドへ送信する(Json形式へSerialize)際に使用する構造体
+// フロント側で理解しやすい構造体に整形した方が開発が楽だと判断したので用意
 #[derive(Serialize)]
 #[serde(crate = "near_sdk::serde")]
-pub struct BikeForFront {
+pub struct JsonBike {
     available: bool,
     in_use: bool,
     used_by: Option<AccountId>,
     inspection: bool,
     inspected_by: Option<AccountId>,
+}
+
+impl Default for JsonBike {
+    fn default() -> Self {
+        Self {
+            available: false,
+            in_use: false,
+            used_by: None,
+            inspection: false,
+            inspected_by: None,
+        }
+    }
 }
 
 // コントラクトの定義
@@ -109,6 +122,7 @@ pub struct Contract {
 }
 
 //TODO: initに変更して, 指定した数のsizeでvector作る, DefaultOnPanicにする
+// TODO: 引数でアカウントIDをもらって保存するようにする
 impl Default for Contract {
     fn default() -> Self {
         Self {
@@ -143,29 +157,25 @@ impl Contract {
 
     // TODO: 関数名, 構造体名変える
     // 各バイクが使用可能かどうかをベクターで返却
-    pub fn get_bike_states(&self) -> Vec<BikeForFront> {
+    pub fn get_json_bikes(&self) -> Vec<JsonBike> {
         self.bikes
             .iter()
             .map(|bike| {
-                let mut bike_for_front = BikeForFront {
-                    available: false,
-                    in_use: false,
-                    used_by: None,
-                    inspection: false,
-                    inspected_by: None,
-                };
+                // デフォルトでは全てがfalse or None
+                let mut json_bike = JsonBike::default();
+                // bikeの状態によって各変数を編集する
                 match bike {
-                    Bike::Available => bike_for_front.available = true,
+                    Bike::Available => json_bike.available = true,
                     Bike::InUse(account_id) => {
-                        bike_for_front.in_use = true;
-                        bike_for_front.used_by = Some(account_id.clone());
+                        json_bike.in_use = true;
+                        json_bike.used_by = Some(account_id.clone());
                     }
                     Bike::Inspection(account_id) => {
-                        bike_for_front.inspection = true;
-                        bike_for_front.inspected_by = Some(account_id.clone());
+                        json_bike.inspection = true;
+                        json_bike.inspected_by = Some(account_id.clone());
                     }
                 };
-                bike_for_front
+                json_bike
             })
             .collect()
     }
@@ -236,7 +246,7 @@ mod tests {
         let mut contract = Contract::default();
 
         // 初期状態をチェック
-        for is_available in contract.get_bike_states() {
+        for is_available in contract.get_json_bikes() {
             assert!(is_available);
         }
 
@@ -245,7 +255,7 @@ mod tests {
         // バイクを使用, 状態をチェック
         contract.use_bike(idx_to_check);
         // バイクを使用したユーザからみた情報
-        for (i, is_available) in contract.get_bike_states().iter().enumerate() {
+        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
                 assert_eq!(contract.bikes[i].who_is_using().unwrap(), caller())
@@ -254,7 +264,7 @@ mod tests {
             }
         }
         // 他のアカウントから見た情報
-        for (i, is_available) in contract.get_bike_states().iter().enumerate() {
+        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
             } else {
@@ -264,14 +274,14 @@ mod tests {
 
         // バイクを返却, 状態をチェック
         contract.return_bike(idx_to_check);
-        for is_available in contract.get_bike_states() {
+        for is_available in contract.get_json_bikes() {
             assert!(is_available);
         }
 
         // バイクを点検, 状態をチェック
         contract.inspect_bike(idx_to_check);
         // バイクを使用したユーザからみた情報
-        for (i, is_available) in contract.get_bike_states().iter().enumerate() {
+        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
                 assert_eq!(contract.bikes[i].who_is_inspecting().unwrap(), caller())
@@ -280,7 +290,7 @@ mod tests {
             }
         }
         // 他のアカウントから見た情報
-        for (i, is_available) in contract.get_bike_states().iter().enumerate() {
+        for (i, is_available) in contract.get_json_bikes().iter().enumerate() {
             if i == idx_to_check {
                 assert!(!is_available);
             } else {
@@ -290,7 +300,7 @@ mod tests {
 
         // バイクを返却, 状態をチェック
         contract.return_bike(idx_to_check);
-        for is_available in contract.get_bike_states() {
+        for is_available in contract.get_json_bikes() {
             assert!(is_available);
         }
     }
