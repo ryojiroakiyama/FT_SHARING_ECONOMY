@@ -36,6 +36,9 @@ export ID=account.testnet
 // create sub account
 near create-account sub.$ID --masterAccount $ID --initialBalance 50
 
+// compile
+cargo build --all --target wasm32-unknown-unknown --release
+
 // check account state
 // Note the code_hash here is all ones. This indicates that there is no contract deployed to this account.
 near state
