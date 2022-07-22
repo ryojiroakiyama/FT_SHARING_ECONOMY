@@ -258,8 +258,8 @@ function Notification() {
       {' '/* React trims whitespace around tags; insert literal space character when needed */}
       called method: 'set_greeting' in contract:
       {' '}
-      <a target="_blank" rel="noreferrer" href={`${urlPrefix}/${window.contract.contractId}`}>
-        {window.contract.contractId}
+      <a target="_blank" rel="noreferrer" href={`${urlPrefix}/${window.bikeContract.contractId}`}>
+        {window.bikeContract.contractId}
       </a>
       <footer>
         <div>✔ Succeeded</div>
