@@ -34,7 +34,10 @@ npx create-near-app myproject --frontend react --contract rust
 export ID=account.testnet
 
 // create sub account
-near create-account sub.$ID --masterAccount $ID --initialBalance 1
+near create-account sub.$ID --masterAccount $ID --initialBalance 50
+
+// compile
+cargo build --all --target wasm32-unknown-unknown --release
 
 // check account state
 // Note the code_hash here is all ones. This indicates that there is no contract deployed to this account.
@@ -65,6 +68,10 @@ curl -d '{"jsonrpc": "2.0", "method": "query", "id": "see-state", "params": {"re
 near deploy sub.$ID --wasmFile [wasm file path] --initFunction 'new(func name)'  --initArgs '{"arg_name": "arg_value"}'
 ```
 
+# Debug log
+## check list
+- import
+- cargo.toml
 
 near-blank-project
 ==================
