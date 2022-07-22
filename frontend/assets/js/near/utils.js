@@ -86,7 +86,9 @@ export async function get_bikes(){
   return bikes
 }
 
-export async function ft_balance_of(){
-  let bikes = await window.ftContract.ft_balance_of(account_id)
-  return bikes
+export async function ft_balance_of(account_id){
+  let balance = await window.ftContract.ft_balance_of({
+    account_id: account_id
+  })
+  return balance
 }

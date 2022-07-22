@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike, ft_balance_of} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -66,6 +66,14 @@ export default function App() {
     setTimeout(() => {
       setShowNotification(false)
     }, 11000)
+  }
+
+  const callFtBalanceOf = async (account_id) => {
+    console.log("call ft_balance_of");
+    ft_balance_of(account_id)
+    .then(balance => {
+     console.log("balace is: ", balance)
+    })
   }
 
   // if not signed in, return early with sign-in prompt
@@ -217,6 +225,12 @@ export default function App() {
                       style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   return
+                </button>
+                <button
+                  onClick={() => callFtBalanceOf(window.accountId)}
+                      style={{ borderRadius: '5px 5px 5px 5px' }}
+                >
+                  balance
                 </button>
               </div>
             );
