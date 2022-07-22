@@ -2,7 +2,7 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, log, near_bindgen,
     serde::Serialize,
-    AccountId,
+    AccountId, Promise,
 };
 
 //TODO: 追加機能集
@@ -77,6 +77,16 @@ impl Contract {
         // Use env::log to record logs permanently to the blockchain!
         log!("Saving greeting {}", message);
         self.message = message;
+    }
+
+    pub fn ft_on_transfer(sender_id: String, amount: String, msg: String) -> String {
+        log!(
+            "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
+            sender_id,
+            amount,
+            msg
+        );
+        "0".to_string()
     }
 
     // 各バイクが使用可能かどうかをベクターで返却
