@@ -12,6 +12,7 @@ export async function initContract() {
   // is hosted at https://wallet.testnet.near.org
   window.walletConnection = new WalletConnection(near)
   console.log("walletConnection:", window.walletConnection)
+  console.log("window.walletConnection.account()", window.walletConnection.account())
 
   // Getting the Account ID. If still unauthorized, it's just empty string
   window.accountId = window.walletConnection.getAccountId()
@@ -22,6 +23,14 @@ export async function initContract() {
     viewMethods: ['get_greeting', 'get_bikes'],
     // Change methods can modify the state. But you don't receive the returned value when called.
     changeMethods: ['set_greeting', 'use_bike', 'return_bike', 'inspect_bike'],
+  })
+
+  // Initializing our contract APIs by contract name and configuration
+  window.ftContract = await new Contract(window.walletConnection.account(), nearConfig.ftContractName, {
+    // View methods are read only. They don't modify the state, but usually return some value.
+    viewMethods: ['ft_balance_of'],
+    // Change methods can modify the state. But you don't receive the returned value when called.
+    changeMethods: [],
   })
 }
 
@@ -74,5 +83,10 @@ export async function get_greeting(){
 
 export async function get_bikes(){
   let bikes = await window.bikeContract.get_bikes()
+  return bikes
+}
+
+export async function ft_balance_of(){
+  let bikes = await window.ftContract.ft_balance_of(account_id)
   return bikes
 }
