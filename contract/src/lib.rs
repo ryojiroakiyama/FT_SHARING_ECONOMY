@@ -102,6 +102,7 @@ impl Contract {
         self.message = message;
     }
 
+    //TODO: panicした時にフロントが側がそれを拾えるのか
     pub fn ft_on_transfer(
         &mut self,
         sender_id: String,
@@ -116,6 +117,24 @@ impl Contract {
         );
         self.use_bike(msg.parse().unwrap());
         PromiseOrValue::Value(U128::from(0))
+    }
+
+    //TODO: storageしてる人でないとできないので注意
+    //TODO: storageを必須にする
+    pub fn transfer() {
+        let ft_contract: AccountId = "my_ft.testnet".parse().unwrap();
+        ext_ft::ext(ft_contract)
+            .with_attached_deposit(1)
+            .ft_transfer(
+                env::predecessor_account_id().to_string(),
+                "15".to_string(),
+                None,
+            );
+        log!(
+            "{} transfer to {}",
+            env::current_account_id(),
+            env::predecessor_account_id()
+        );
     }
 
     // 各バイクが使用可能かどうかをベクターで返却
@@ -183,6 +202,7 @@ impl Contract {
             }
             Bike::Inspection(account_id) => {
                 assert_eq!(account_id.clone(), caller, "Wrong account");
+                Self::transfer();
                 self.bikes[index] = Bike::Available
             }
         };
