@@ -33,6 +33,9 @@ export default function App() {
 
   const [inProcess, setInProcess] = useState(false);
 
+  //
+  const [storageRegistered, setStorageRegistered] = useState(false);
+
   // The useEffect hook can be used to fire side-effects during render
   // Learn more: https://reactjs.org/docs/hooks-intro.html
   React.useEffect(
@@ -45,6 +48,17 @@ export default function App() {
         console.log(bikesFromContract);
         setBikes(bikesFromContract);
       });
+      if (window.accountId != "") {
+        console.log("accountid->:", window.accountId);
+        storage_balance_of(window.accountId).then((balance) => {
+          console.log("storage balance: ", balance);
+          if (balance === null) {
+            setStorageRegistered(false);
+          } else {
+            setStorageRegistered(true);
+          }
+        });
+      }
     },
 
     // The second argument to useEffect tells React when to re-run the effect
@@ -88,27 +102,24 @@ export default function App() {
   //TODO: thenをしたらawaitしなくていいのか調査
   const ftTransfer = async () => {
     console.log("call transfer");
-    storage_balance_of(window.accountId).then((balance) => {
-      console.log("storage balance: ", balance);
-      if (balance === null) {
-        console.log("user is not yet registered");
-        try {
-          storage_deposit().then((value) => {
-            console.log("returnd value from storage_deposit: ", value);
-          });
-        } catch (e) {
-          alert("Something went wrong! " + e);
-          return;
-        }
-      }
-      // TODO: awaitつけるとおこらた
-      // error中身 -> ReferenceError: await is not defined
-      try {
-        ft_transfer();
-      } catch (e) {
-        alert("Something went wrong! " + e);
-      }
-    });
+    // TODO: awaitつけるとおこらた
+    // error中身 -> ReferenceError: await is not defined
+    try {
+      ft_transfer();
+    } catch (e) {
+      alert("Something went wrong! " + e);
+    }
+  };
+
+  const storageDeposit = async () => {
+    try {
+      storage_deposit().then((value) => {
+        console.log("returnd value from storage_deposit: ", value);
+      });
+    } catch (e) {
+      alert("Something went wrong! " + e);
+      return;
+    }
   };
 
   // TODO: transfer_callを呼ぶ前にft_balanceとかで残高調べてもいいかも -> ガス代節約
@@ -149,6 +160,40 @@ export default function App() {
         </p>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={login}>Sign in</button>
+        </p>
+      </main>
+    );
+  }
+
+  // これだと反応してくれないので一旦だんねん
+  if (!storageRegistered) {
+    console.log("user is not yet registered");
+    return (
+      <main>
+        <h1>
+          <label
+            htmlFor="greeting"
+            style={{
+              color: "var(--secondary)",
+              borderBottom: "2px solid var(--secondary)",
+            }}
+          >
+            {greeting}
+          </label>
+          ! Welcome to NEAR!
+        </h1>
+        <p>
+          Your contract is storing a greeting message in the NEAR blockchain. To
+          change it you need to sign in using the NEAR Wallet. It is very
+          simple, just use the button below.
+        </p>
+        <p>
+          Do not worry, this app runs in the test network ("testnet"). It works
+          just like the main network ("mainnet"), but using NEAR Tokens that are
+          only for testing!
+        </p>
+        <p style={{ textAlign: "center", marginTop: "2.5em" }}>
+          <button onClick={storageDeposit}>storage deposit</button>
         </p>
       </main>
     );
