@@ -28,9 +28,9 @@ export async function initContract() {
   // Initializing our contract APIs by contract name and configuration
   window.ftContract = await new Contract(window.walletConnection.account(), nearConfig.ftContractName, {
     // View methods are read only. They don't modify the state, but usually return some value.
-    viewMethods: ['ft_balance_of'],
+    viewMethods: ['ft_balance_of', 'storage_balance_of'],
     // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: [],
+    changeMethods: ['storage_deposit', 'ft_transfer'],
   })
 }
 
@@ -91,4 +91,26 @@ export async function ft_balance_of(account_id){
     account_id: account_id
   })
   return balance
+}
+
+export async function storage_balance_of(account_id){
+  let balance = await window.ftContract.storage_balance_of({
+    account_id: account_id
+  })
+  return balance
+}
+
+// 引数を省略してユーザにstorage_depositを負わせる
+// ガス代テキトー
+export async function storage_deposit(){
+  let response = await window.ftContract.storage_deposit({}, "300000000000000", "1250000000000000000000")
+  return response
+}
+
+// とりあえず引数固定, 省略
+export async function ft_transfer(){
+  let response = await window.ftContract.ft_transfer({
+    args:{index: nearConfig.bikeContractName, amount: "19"}
+  })
+  return response
 }

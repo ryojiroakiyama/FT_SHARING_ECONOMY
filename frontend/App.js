@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike, ft_balance_of} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike, ft_balance_of, storage_balance_of, storage_deposit, ft_transfer} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -43,6 +43,7 @@ export default function App() {
     []
   )
 
+  // TODO: error内容を出力してみる、そして使うかどうか, tryの中に成功時の処理を移す
   const callContractMethod = async (method, index) => {
     console.log("call contract method");
     setInProcess(true);
@@ -73,6 +74,28 @@ export default function App() {
     ft_balance_of(account_id)
     .then(balance => {
      console.log("balace is: ", balance)
+    })
+  }
+
+  const transfer = async () => {
+    console.log("call transfer");
+    storage_balance_of(window.accountId)
+    .then(balance => {
+      console.log("storage balance: ", balance)
+      if (balance === null) {
+       console.log("user is not yet registered")
+       try {
+        storage_deposit()
+        .then(value => {
+          console.log("returnd value from storage_deposit: " ,value)
+        });
+       } catch (e) {
+         alert(
+           'Something went wrong! ' +
+           e
+         )
+       }
+     }
     })
   }
 
@@ -226,16 +249,21 @@ export default function App() {
                 >
                   return
                 </button>
-                <button
-                  onClick={() => callFtBalanceOf(window.accountId)}
-                      style={{ borderRadius: '5px 5px 5px 5px' }}
-                >
-                  balance
-                </button>
               </div>
             );
           })
         )}
+        <button
+          onClick={() => callFtBalanceOf(window.accountId)}
+        >
+          ft_balance_of
+        </button>
+        <button
+          //onClick={() => callFuncBalanceOf(window.accountId, storage_balance_of)}
+          onClick={transfer}
+          >
+          transfer
+        </button>
         <p>
           Look at that! A Hello World app! This greeting is stored on the NEAR blockchain. Check it out:
         </p>
