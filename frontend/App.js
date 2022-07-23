@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 
 import './assets/css/global.css'
 
-import {login, logout, get_greeting, set_greeting, get_bikes, use_bike, return_bike, inspect_bike, ft_balance_of, storage_balance_of, storage_deposit, ft_transfer} from './assets/js/near/utils'
+import {login, logout, get_greeting, set_greeting, get_bikes, return_bike, inspect_bike, ft_balance_of, storage_balance_of, storage_deposit, ft_transfer, ft_transfer_call} from './assets/js/near/utils'
 import getConfig from './assets/js/near/config'
 
 
@@ -78,7 +78,7 @@ export default function App() {
   }
 
   //TODO: thenをしたらawaitしなくていいのか調査
-  const transfer = async () => {
+  const ftTransfer = async () => {
     console.log("call transfer");
     storage_balance_of(window.accountId)
     .then(balance => {
@@ -110,6 +110,19 @@ export default function App() {
      }
     })
   }
+
+    // TODO: transfer_callを呼ぶ前にft_balanceとかで残高調べてもいいかも -> ガス代節約
+    const ftTransferCall = async (index) => {
+      console.log("call transfer call");
+      try {
+      ft_transfer_call(index)
+      } catch (e) {
+      alert(
+        'Something went wrong! ' +
+        e
+      )
+      }
+    }
 
   // if not signed in, return early with sign-in prompt
   if (!window.walletConnection.isSignedIn()) {
@@ -241,7 +254,7 @@ export default function App() {
                   {index}: bike
                 <button
                   disabled={!bike.available}
-                  onClick={() => callContractMethod(use_bike, index)}
+                  onClick={() => ftTransferCall(index)}
                   style={{ borderRadius: '5px 5px 5px 5px' }}
                 >
                   use
@@ -276,7 +289,7 @@ export default function App() {
           ft_balance_of_bike_contract
         </button>
         <button
-          onClick={transfer}
+          onClick={ftTransfer}
           >
           transfer
         </button>

@@ -22,7 +22,7 @@ export async function initContract() {
     // View methods are read only. They don't modify the state, but usually return some value.
     viewMethods: ['get_greeting', 'get_bikes'],
     // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: ['set_greeting', 'use_bike', 'return_bike', 'inspect_bike'],
+    changeMethods: ['set_greeting', 'return_bike', 'inspect_bike'],
   })
 
   // Initializing our contract APIs by contract name and configuration
@@ -30,7 +30,7 @@ export async function initContract() {
     // View methods are read only. They don't modify the state, but usually return some value.
     viewMethods: ['ft_balance_of', 'storage_balance_of'],
     // Change methods can modify the state. But you don't receive the returned value when called.
-    changeMethods: ['storage_deposit', 'ft_transfer'],
+    changeMethods: ['storage_deposit', 'ft_transfer', 'ft_transfer_call'],
   })
 }
 
@@ -51,13 +51,6 @@ export function login() {
 export async function set_greeting(message){
   let response = await window.bikeContract.set_greeting({
     args:{message: message}
-  })
-  return response
-}
-
-export async function use_bike(index){
-  let response = await window.bikeContract.use_bike({
-    args:{index: index}
   })
   return response
 }
@@ -112,11 +105,26 @@ export async function storage_deposit(){
 }
 
 // TODO: こっちはargなしじゃないと通らなかった, 他も合わせる
-// とりあえず引数固定, 省略
+// TODO: とりあえず引数固定, 省略
 export async function ft_transfer(){
   let response = await window.ftContract.ft_transfer({
     receiver_id: nearConfig.bikeContractName
-    , amount: "19"}
+    , amount: "30"}
+  , "300000000000000"
+  , "1"
+  )
+  console.log("reponse is:", response)
+  return response
+}
+
+// TODO: こっちはargなしじゃないと通らなかった, 他も合わせる
+// とりあえず引数固定, 省略
+export async function ft_transfer_call(index){
+  let response = await window.ftContract.ft_transfer_call({
+    receiver_id: nearConfig.bikeContractName
+    , amount: "30"
+    , msg: index.toString()
+  }
   , "300000000000000"
   , "1"
   )

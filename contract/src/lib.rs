@@ -102,13 +102,19 @@ impl Contract {
         self.message = message;
     }
 
-    pub fn ft_on_transfer(sender_id: String, amount: String, msg: String) -> PromiseOrValue<U128> {
+    pub fn ft_on_transfer(
+        &mut self,
+        sender_id: String,
+        amount: String,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
         log!(
             "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
             sender_id,
             amount,
             msg
         );
+        self.use_bike(msg.parse().unwrap());
         PromiseOrValue::Value(U128::from(0))
     }
 
@@ -150,7 +156,7 @@ impl Contract {
     pub fn use_bike(&mut self, index: usize) {
         log!("use_bike");
         match &self.bikes[index] {
-            Bike::Available => self.bikes[index] = Bike::InUse(env::predecessor_account_id()),
+            Bike::Available => self.bikes[index] = Bike::InUse(env::signer_account_id()),
             _ => panic!("Not available"),
         }
     }
