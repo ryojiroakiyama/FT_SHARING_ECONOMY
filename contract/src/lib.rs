@@ -4,7 +4,7 @@ use near_sdk::{
     json_types::U128,
     log, near_bindgen,
     serde::Serialize,
-    AccountId,
+    AccountId, PromiseOrValue,
 };
 
 //TODO: storage系はftの関数ではない？？storage_managementについてもう一度読む
@@ -102,14 +102,14 @@ impl Contract {
         self.message = message;
     }
 
-    pub fn ft_on_transfer(sender_id: String, amount: String, msg: String) -> String {
+    pub fn ft_on_transfer(sender_id: String, amount: String, msg: String) -> PromiseOrValue<U128> {
         log!(
             "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
             sender_id,
             amount,
             msg
         );
-        "0".to_string()
+        PromiseOrValue::Value(U128::from(0))
     }
 
     // 各バイクが使用可能かどうかをベクターで返却
