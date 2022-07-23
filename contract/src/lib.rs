@@ -1,9 +1,30 @@
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    env, log, near_bindgen,
+    env, ext_contract,
+    json_types::U128,
+    log, near_bindgen,
     serde::Serialize,
     AccountId,
 };
+
+//TODO: storage系はftの関数ではない？？storage_managementについてもう一度読む
+// https://nomicon.io/Standards/StorageManagement これのコード内コメントのところ
+#[ext_contract(ext_ft)]
+trait FungibleToken {
+    // change methods
+    fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: String,
+        amount: String,
+        memo: Option<String>,
+        msg: String,
+    ) -> U128;
+
+    // view methods
+    fn ft_total_supply(&self) -> String;
+    fn ft_balance_of(&self, account_id: String) -> String;
+}
 
 //TODO: 追加機能集
 //TODO: ユーザ1人一つしか使用できないようにする
