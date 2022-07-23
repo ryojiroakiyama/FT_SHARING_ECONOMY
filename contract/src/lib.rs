@@ -2,7 +2,7 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, log, near_bindgen,
     serde::Serialize,
-    AccountId, Promise,
+    AccountId,
 };
 
 //TODO: 追加機能集

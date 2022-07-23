@@ -77,6 +77,7 @@ export default function App() {
     })
   }
 
+  //TODO: thenをしたらawaitしなくていいのか調査
   const transfer = async () => {
     console.log("call transfer");
     storage_balance_of(window.accountId)
