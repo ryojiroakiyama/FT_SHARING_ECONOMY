@@ -64,6 +64,8 @@ impl Default for Contract {
     }
 }
 
+//TODO: Lookupmapなどのプレフィックスについて
+// https://www.near-sdk.io/zero-to-hero/beginner/collections#collections-have-prefixes
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
