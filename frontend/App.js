@@ -268,10 +268,14 @@ export default function App() {
         <button
           onClick={() => callFtBalanceOf(window.accountId)}
         >
-          ft_balance_of
+          ft_balance_of_signer_account
         </button>
         <button
-          //onClick={() => callFuncBalanceOf(window.accountId, storage_balance_of)}
+          onClick={() => callFtBalanceOf(process.env.CONTRACT_NAME)}
+        >
+          ft_balance_of_bike_contract
+        </button>
+        <button
           onClick={transfer}
           >
           transfer
