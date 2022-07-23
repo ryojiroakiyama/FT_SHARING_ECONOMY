@@ -103,14 +103,23 @@ export async function storage_balance_of(account_id){
 // 引数を省略してユーザにstorage_depositを負わせる
 // ガス代テキトー
 export async function storage_deposit(){
-  let response = await window.ftContract.storage_deposit({}, "300000000000000", "1250000000000000000000")
+  let response = await window.ftContract.storage_deposit(
+    {}
+    , "300000000000000"
+    , "1250000000000000000000"
+  )
   return response
 }
 
+// TODO: こっちはargなしじゃないと通らなかった, 他も合わせる
 // とりあえず引数固定, 省略
 export async function ft_transfer(){
   let response = await window.ftContract.ft_transfer({
-    args:{index: nearConfig.bikeContractName, amount: "19"}
-  })
+    receiver_id: nearConfig.bikeContractName
+    , amount: "19"}
+  , "300000000000000"
+  , "1"
+  )
+  console.log("reponse is:", response)
   return response
 }

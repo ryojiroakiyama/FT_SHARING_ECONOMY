@@ -95,7 +95,18 @@ export default function App() {
            'Something went wrong! ' +
            e
          )
+         return
        }
+     }
+     // TODO: awaitつけるとおこらた
+     // error中身 -> ReferenceError: await is not defined
+     try {
+      ft_transfer()
+     } catch (e) {
+      alert(
+        'Something went wrong! ' +
+        e
+      )
      }
     })
   }
