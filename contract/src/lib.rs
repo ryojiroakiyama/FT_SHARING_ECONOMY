@@ -158,7 +158,7 @@ impl Contract {
         };
     }
 
-    //TODO: 30支払われたか確認
+    //TODO: 30支払われたかの確認を入れる
     pub fn ft_on_transfer(
         &mut self,
         sender_id: String,

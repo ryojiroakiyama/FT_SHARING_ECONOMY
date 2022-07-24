@@ -63,6 +63,11 @@ export function login() {
   window.walletConnection.requestSignIn(nearConfig.bikeContractName);
 }
 
+export async function get_bikes() {
+  let bikes = await window.bikeContract.get_bikes();
+  return bikes;
+}
+
 export async function inspect_bike(index) {
   let response = await window.bikeContract.inspect_bike({
     index: index,
@@ -75,11 +80,6 @@ export async function return_bike(index) {
     index: index,
   });
   return response;
-}
-
-export async function get_bikes() {
-  let bikes = await window.bikeContract.get_bikes();
-  return bikes;
 }
 
 export async function ft_balance_of(account_id) {
