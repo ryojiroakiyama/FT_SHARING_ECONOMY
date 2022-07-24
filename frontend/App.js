@@ -25,9 +25,6 @@ export default function App() {
   // when the user has not yet interacted with the form, disable the button
   const [buttonDisabled, setButtonDisabled] = React.useState(true);
 
-  // after submitting the form, we want to show Notification
-  const [showNotification, setShowNotification] = React.useState(false);
-
   const [bikes, setBikes] = useState([]);
 
   // トランザクションの処理中を扱うフラグ
@@ -60,6 +57,7 @@ export default function App() {
       storage_balance_of(window.accountId).then((balance) => {
         console.log("user's storage balance: ", balance);
         if (balance === null) {
+          console.log("account is not yet registered");
           setStorageRegistered(false);
         } else {
           setStorageRegistered(true);
@@ -124,17 +122,6 @@ export default function App() {
     setInProcess(false);
   };
 
-  const ftTransfer = async () => {
-    console.log("call transfer");
-    // TODO: awaitつけるとおこらた
-    // error中身 -> ReferenceError: await is not defined
-    try {
-      ft_transfer();
-    } catch (e) {
-      alert(e);
-    }
-  };
-
   const getThenSetBalance = async (account_id) => {
     let user_balance = await ft_balance_of(account_id);
     setShowBalance(user_balance);
@@ -175,7 +162,6 @@ export default function App() {
   }
 
   if (!storageRegistered) {
-    console.log("user is not yet registered");
     return (
       <main>
         <h1>
@@ -207,6 +193,8 @@ export default function App() {
     );
   }
 
+  //TODO: コンポーネントを分ける
+
   return (
     // use React Fragment, <>, to avoid wrapping elements in unnecessary divs
     <>
@@ -229,76 +217,6 @@ export default function App() {
           }
           {window.accountId}!
         </h1>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-
-            // get elements from the form using their id attribute
-            const { fieldset, greeting } = event.target.elements;
-
-            // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
-            const newGreeting = greeting.value;
-
-            // disable the form while the value gets updated on-chain
-            fieldset.disabled = true;
-
-            try {
-              // make an update call to the smart contract
-              // pass the value that the user entered in the greeting field
-              await set_greeting(newGreeting);
-            } catch (e) {
-              alert(
-                "Something went wrong! " +
-                  "Maybe you need to sign out and back in? " +
-                  "Check your browser console for more info."
-              );
-              throw e;
-            } finally {
-              // re-enable the form, whether the call succeeded or failed
-              fieldset.disabled = false;
-            }
-
-            // update local `greeting` variable to match persisted value
-            setGreeting(newGreeting);
-
-            // show Notification
-            setShowNotification(true);
-
-            // remove Notification again after css animation completes
-            // this allows it to be shown again next time the form is submitted
-            setTimeout(() => {
-              setShowNotification(false);
-            }, 11000);
-          }}
-        >
-          <fieldset id="fieldset">
-            <label
-              htmlFor="greeting"
-              style={{
-                display: "block",
-                color: "var(--gray)",
-                marginBottom: "0.5em",
-              }}
-            >
-              Change greeting
-            </label>
-            <div style={{ display: "flex" }}>
-              <input
-                autoComplete="off"
-                defaultValue={greeting}
-                id="greeting"
-                onChange={(e) => setButtonDisabled(e.target.value === greeting)}
-                style={{ flex: 1 }}
-              />
-              <button
-                disabled={buttonDisabled}
-                style={{ borderRadius: "0 5px 5px 0" }}
-              >
-                Save
-              </button>
-            </div>
-          </fieldset>
-        </form>
         {inProcess === true ? (
           <p> in process... </p>
         ) : (
@@ -343,12 +261,52 @@ export default function App() {
         <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
           ft_balance_of_bike_contract
         </button>
-        <button onClick={ftTransfer}>transfer</button>
         {accountToShowBalance && (
           <p>
             {accountToShowBalance}'s balance: {showBalance}
           </p>
         )}
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+
+            // get elements from the form using their id attribute
+            const { fieldset, account } = event.target.elements;
+
+            // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
+            const account_to_transfer = account.value;
+
+            // disable the form while the value gets updated on-chain
+            fieldset.disabled = true;
+
+            try {
+              await ft_transfer(account_to_transfer);
+            } catch (e) {
+              alert(e);
+              throw e;
+            } finally {
+              // re-enable the form, whether the call succeeded or failed
+              fieldset.disabled = false;
+            }
+          }}
+        >
+          <fieldset id="fieldset">
+            <label
+              htmlFor="account"
+              style={{
+                display: "block",
+                color: "var(--gray)",
+                marginBottom: "0.5em",
+              }}
+            >
+              type account to transfer 30 FT
+            </label>
+            <div style={{ display: "flex" }}>
+              <input autoComplete="off" id="account" style={{ flex: 1 }} />
+              <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
+            </div>
+          </fieldset>
+        </form>
       </main>
     </>
   );

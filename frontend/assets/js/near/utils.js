@@ -17,13 +17,12 @@ export async function initContract() {
   // is hosted at https://wallet.testnet.near.org
   window.walletConnection = new WalletConnection(near);
   console.log("walletConnection:", window.walletConnection);
-  console.log(
-    "window.walletConnection.account()",
-    window.walletConnection.account()
-  );
 
   // Getting the Account ID. If still unauthorized, it's just empty string
   window.accountId = window.walletConnection.getAccountId();
+
+  console.log("account of bike contract: ", nearConfig.bikeContractName);
+  console.log("account of FT contract: ", nearConfig.ftContractName);
 
   // Initializing our contract APIs by contract name and configuration
   window.bikeContract = await new Contract(
@@ -122,10 +121,10 @@ export async function storage_deposit() {
 
 // TODO: こっちはargなしじゃないと通らなかった, 他も合わせる
 // TODO: とりあえず引数固定, 省略
-export async function ft_transfer() {
+export async function ft_transfer(receiver_id) {
   let response = await window.ftContract.ft_transfer(
     {
-      receiver_id: nearConfig.bikeContractName,
+      receiver_id: receiver_id,
       amount: "30",
     },
     "300000000000000",
