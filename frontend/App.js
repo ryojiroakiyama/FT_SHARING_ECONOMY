@@ -6,8 +6,6 @@ import "./assets/css/global.css";
 import {
   login,
   logout,
-  get_greeting,
-  set_greeting,
   get_bikes,
   return_bike,
   inspect_bike,
@@ -19,19 +17,13 @@ import {
 } from "./assets/js/near/utils";
 
 export default function App() {
-  // use React Hooks to store greeting in component state
-  const [greeting, setGreeting] = React.useState();
-
-  // when the user has not yet interacted with the form, disable the button
-  const [buttonDisabled, setButtonDisabled] = React.useState(true);
-
   const [bikes, setBikes] = useState([]);
 
   // トランザクションの処理中を扱うフラグ
   const [inProcess, setInProcess] = useState(false);
 
   // ユーザがストレージを登録しているかを扱うフラグ
-  const [storageRegistered, setStorageRegistered] = useState(false);
+  const [isStorageRegistered, setStorageRegistered] = useState(false);
 
   // 残高表示をするアカウント名
   const [accountToShowBalance, setAccountToShowBalance] = useState("");
@@ -42,10 +34,6 @@ export default function App() {
   // 初回レンダリング時の処理
   // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
   React.useEffect(() => {
-    // get_greeting is in near/utils.js
-    get_greeting().then((greetingFromContract) => {
-      setGreeting(greetingFromContract);
-    });
     // bikeの情報を取得
     get_bikes().then((bikesFromContract) => {
       setBikes(bikesFromContract);
@@ -132,18 +120,7 @@ export default function App() {
   if (!window.walletConnection.isSignedIn()) {
     return (
       <main>
-        <h1>
-          <label
-            htmlFor="greeting"
-            style={{
-              color: "var(--secondary)",
-              borderBottom: "2px solid var(--secondary)",
-            }}
-          >
-            {greeting}
-          </label>
-          ! Welcome to NEAR!
-        </h1>
+        <h1>Welcome to NEAR!</h1>
         <p>
           Your contract is storing a greeting message in the NEAR blockchain. To
           change it you need to sign in using the NEAR Wallet. It is very
@@ -161,31 +138,9 @@ export default function App() {
     );
   }
 
-  if (!storageRegistered) {
+  if (!isStorageRegistered) {
     return (
       <main>
-        <h1>
-          <label
-            htmlFor="greeting"
-            style={{
-              color: "var(--secondary)",
-              borderBottom: "2px solid var(--secondary)",
-            }}
-          >
-            {greeting}
-          </label>
-          ! Welcome to NEAR!
-        </h1>
-        <p>
-          Your contract is storing a greeting message in the NEAR blockchain. To
-          change it you need to sign in using the NEAR Wallet. It is very
-          simple, just use the button below.
-        </p>
-        <p>
-          Do not worry, this app runs in the test network ("testnet"). It works
-          just like the main network ("mainnet"), but using NEAR Tokens that are
-          only for testing!
-        </p>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={storageDeposit}>storage deposit</button>
         </p>
@@ -203,15 +158,7 @@ export default function App() {
       </button>
       <main>
         <h1>
-          <label
-            htmlFor="greeting"
-            style={{
-              color: "var(--secondary)",
-              borderBottom: "2px solid var(--secondary)",
-            }}
-          >
-            {greeting}
-          </label>
+          Hello
           {
             " " /* React trims whitespace around tags; insert literal space character when needed */
           }

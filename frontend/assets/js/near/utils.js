@@ -30,9 +30,9 @@ export async function initContract() {
     nearConfig.bikeContractName,
     {
       // View methods are read only. They don't modify the state, but usually return some value.
-      viewMethods: ["get_greeting", "get_bikes"],
+      viewMethods: ["get_bikes"],
       // Change methods can modify the state. But you don't receive the returned value when called.
-      changeMethods: ["set_greeting", "return_bike", "inspect_bike"],
+      changeMethods: ["return_bike", "inspect_bike"],
     }
   );
 
@@ -63,13 +63,6 @@ export function login() {
   window.walletConnection.requestSignIn(nearConfig.bikeContractName);
 }
 
-export async function set_greeting(message) {
-  let response = await window.bikeContract.set_greeting({
-    args: { message: message },
-  });
-  return response;
-}
-
 export async function return_bike(index) {
   let response = await window.bikeContract.return_bike({
     args: { index: index },
@@ -82,11 +75,6 @@ export async function inspect_bike(index) {
     args: { index: index },
   });
   return response;
-}
-
-export async function get_greeting() {
-  let greeting = await window.bikeContract.get_greeting();
-  return greeting;
 }
 
 export async function get_bikes() {
