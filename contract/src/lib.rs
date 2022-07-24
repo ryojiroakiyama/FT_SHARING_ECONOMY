@@ -134,6 +134,7 @@ impl Contract {
         }
     }
 
+    //TODO: deploy時のdepositを初期時だけにする
     //TODO:エラー文丁寧に
     // 使用中or点検中 -> 使用可
     pub fn return_bike(&mut self, index: usize) {
