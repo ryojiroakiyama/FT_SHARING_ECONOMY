@@ -120,17 +120,6 @@ export default function App() {
   if (!window.walletConnection.isSignedIn()) {
     return (
       <main>
-        <h1>Welcome to NEAR!</h1>
-        <p>
-          Your contract is storing a greeting message in the NEAR blockchain. To
-          change it you need to sign in using the NEAR Wallet. It is very
-          simple, just use the button below.
-        </p>
-        <p>
-          Do not worry, this app runs in the test network ("testnet"). It works
-          just like the main network ("mainnet"), but using NEAR Tokens that are
-          only for testing!
-        </p>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={login}>Sign in</button>
         </p>
@@ -162,7 +151,7 @@ export default function App() {
           {
             " " /* React trims whitespace around tags; insert literal space character when needed */
           }
-          {window.accountId}!
+          {window.accountId} !
         </h1>
         {inProcess === true ? (
           <p> in process... </p>
@@ -208,6 +197,37 @@ export default function App() {
         <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
           ft_balance_of_bike_contract
         </button>
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const { fieldset, account } = event.target.elements;
+            const account_to_check = account.value;
+            fieldset.disabled = true;
+            try {
+              await getThenSetBalance(account_to_check);
+            } catch (e) {
+              alert(e);
+            }
+            fieldset.disabled = false;
+          }}
+        >
+          <fieldset id="fieldset">
+            <label
+              htmlFor="account"
+              style={{
+                display: "block",
+                color: "var(--gray)",
+                marginBottom: "0.5em",
+              }}
+            >
+              type account to check balance
+            </label>
+            <div style={{ display: "flex" }}>
+              <input autoComplete="off" id="account" style={{ flex: 1 }} />
+              <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
+            </div>
+          </fieldset>
+        </form>
         {accountToShowBalance && (
           <p>
             {accountToShowBalance}'s balance: {showBalance}
@@ -216,25 +236,16 @@ export default function App() {
         <form
           onSubmit={async (event) => {
             event.preventDefault();
-
             // get elements from the form using their id attribute
             const { fieldset, account } = event.target.elements;
-
-            // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
             const account_to_transfer = account.value;
-
-            // disable the form while the value gets updated on-chain
             fieldset.disabled = true;
-
             try {
               await ft_transfer(account_to_transfer);
             } catch (e) {
               alert(e);
-              throw e;
-            } finally {
-              // re-enable the form, whether the call succeeded or failed
-              fieldset.disabled = false;
             }
+            fieldset.disabled = false;
           }}
         >
           <fieldset id="fieldset">
