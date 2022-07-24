@@ -63,16 +63,16 @@ export function login() {
   window.walletConnection.requestSignIn(nearConfig.bikeContractName);
 }
 
-export async function return_bike(index) {
-  let response = await window.bikeContract.return_bike({
-    args: { index: index },
+export async function inspect_bike(index) {
+  let response = await window.bikeContract.inspect_bike({
+    index: index,
   });
   return response;
 }
 
-export async function inspect_bike(index) {
-  let response = await window.bikeContract.inspect_bike({
-    args: { index: index },
+export async function return_bike(index) {
+  let response = await window.bikeContract.return_bike({
+    index: index,
   });
   return response;
 }
@@ -107,8 +107,6 @@ export async function storage_deposit() {
   return response;
 }
 
-// TODO: こっちはargなしじゃないと通らなかった, 他も合わせる
-// TODO: とりあえず引数固定, 省略
 export async function ft_transfer(receiver_id) {
   let response = await window.ftContract.ft_transfer(
     {
