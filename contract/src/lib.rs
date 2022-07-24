@@ -29,7 +29,12 @@ trait FungibleToken {
 //TODO: 追加機能集
 //TODO: ユーザ1人一つしか使用できないようにする
 //TODO: アカウント所持者はバイクの数を増やせる(事前にアカウントのIDを所持しておく)
+//TODO: ユーザが誰か他の人に送金できるボタン実装
 
+// TODO: ユーザ間送金機能つける
+
+// Define the default message
+const DEFAULT_MESSAGE: &str = "Hello";
 const NUMBER_OF_BIKES: usize = 5;
 
 // Bikeの状態
@@ -57,6 +62,7 @@ pub struct JsonBike {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Contract {
+    message: String,
     bikes: Vec<Bike>,
 }
 
@@ -66,6 +72,7 @@ impl Default for Contract {
     fn default() -> Self {
         log!("initialize Contract");
         Self {
+            message: DEFAULT_MESSAGE.to_string(),
             bikes: {
                 let mut v = Vec::new();
                 let mut index = 0;
@@ -79,10 +86,47 @@ impl Default for Contract {
     }
 }
 
+//TODO: Lookupmapなどのプレフィックスについて
+// https://www.near-sdk.io/zero-to-hero/beginner/collections#collections-have-prefixes
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
-    // 各バイクの情報をJsonBikeのベクターで返却
+    //TODO: panicした時にフロントが側がそれを拾えるのか
+    pub fn ft_on_transfer(
+        &mut self,
+        sender_id: String,
+        amount: String,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        log!(
+            "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
+            sender_id,
+            amount,
+            msg
+        );
+        self.use_bike(msg.parse().unwrap());
+        PromiseOrValue::Value(U128::from(0))
+    }
+
+    //TODO: storageしてる人でないとできないので注意
+    //TODO: storageを必須にする
+    pub fn transfer() {
+        let ft_contract: AccountId = "my_ft.testnet".parse().unwrap();
+        ext_ft::ext(ft_contract)
+            .with_attached_deposit(1)
+            .ft_transfer(
+                env::predecessor_account_id().to_string(),
+                "15".to_string(),
+                None,
+            );
+        log!(
+            "{} transfer to {}",
+            env::current_account_id(),
+            env::predecessor_account_id()
+        );
+    }
+
+    // 各バイクが使用可能かどうかをベクターで返却
     pub fn get_bikes(&self) -> Vec<JsonBike> {
         log!("get_bikes");
         self.bikes
@@ -134,7 +178,6 @@ impl Contract {
         }
     }
 
-    //TODO:エラー文丁寧に
     // 使用中or点検中 -> 使用可
     pub fn return_bike(&mut self, index: usize) {
         log!("return_bike");
@@ -148,40 +191,10 @@ impl Contract {
             }
             Bike::Inspection(account_id) => {
                 assert_eq!(account_id.clone(), caller, "Wrong account");
-                Self::ft_transfer(
-                    "my_ft.testnet".parse().unwrap(),
-                    "15".to_string(),
-                    env::predecessor_account_id(),
-                );
+                Self::transfer();
                 self.bikes[index] = Bike::Available
             }
         };
-    }
-
-    //TODO: 30支払われたか確認
-    pub fn ft_on_transfer(
-        &mut self,
-        sender_id: String,
-        amount: String,
-        msg: String,
-    ) -> PromiseOrValue<U128> {
-        log!(
-            "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
-            sender_id,
-            amount,
-            msg
-        );
-        self.use_bike(msg.parse().unwrap());
-        PromiseOrValue::Value(U128::from(0))
-    }
-
-    pub fn ft_transfer(contract: AccountId, amount: String, receiver: AccountId) {
-        ext_ft::ext(contract).with_attached_deposit(1).ft_transfer(
-            receiver.to_string(),
-            amount,
-            None,
-        );
-        log!("{} transfer to {}", env::current_account_id(), receiver);
     }
 }
 
@@ -192,6 +205,7 @@ mod tests {
     #[test]
     fn get_default() {
         let contract = Contract::default();
+        assert_eq!(contract.get_greeting(), "Hello".to_string());
         for bike in contract.bikes {
             assert!(bike.is_available());
         }
