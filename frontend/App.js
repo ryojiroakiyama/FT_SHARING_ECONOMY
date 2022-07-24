@@ -17,7 +17,6 @@ import {
   ft_transfer,
   ft_transfer_call,
 } from "./assets/js/near/utils";
-import getConfig from "./assets/js/near/config";
 
 export default function App() {
   // use React Hooks to store greeting in component state
@@ -37,6 +36,12 @@ export default function App() {
   // ユーザがストレージを登録しているかを扱うフラグ
   const [storageRegistered, setStorageRegistered] = useState(false);
 
+  // 残高表示をするアカウント名
+  const [accountToShowBalance, setAccountToShowBalance] = useState("");
+
+  // 表示する残高
+  const [showBalance, setShowBalance] = useState(0);
+
   // 初回レンダリング時の処理
   // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
   React.useEffect(() => {
@@ -46,7 +51,6 @@ export default function App() {
     });
     // bikeの情報を取得
     get_bikes().then((bikesFromContract) => {
-      console.log(bikesFromContract);
       setBikes(bikesFromContract);
     });
     // ユーザのアカウントがFTコントラクトに登録されているかを確認
@@ -54,7 +58,7 @@ export default function App() {
     if (window.accountId) {
       // ストレージ残高にnullが返ってくる場合は未登録を意味する
       storage_balance_of(window.accountId).then((balance) => {
-        console.log("storage balance: ", balance);
+        console.log("user's storage balance: ", balance);
         if (balance === null) {
           setStorageRegistered(false);
         } else {
@@ -64,8 +68,36 @@ export default function App() {
     }
   }, []);
 
+  //storage_depositの呼び出し
+  const storageDeposit = async () => {
+    try {
+      storage_deposit().then((value) => {
+        console.log("Returnd value from storage_deposit: ", value);
+      });
+    } catch (e) {
+      alert(e);
+    }
+  };
+
+  // ft_trasnfer_callを呼ぶことでBikeコントラクトにFT送金 + Bikeを使用
+  const trasferFtToUseBike = async (index) => {
+    console.log("Use bike");
+    // 余分なトランザクションを避けるためにユーザの残高を確認
+    let user_balance = await ft_balance_of(window.accountId);
+    if (user_balance < 30) {
+      alert("Balance is not enough");
+      return;
+    } else {
+      try {
+        ft_transfer_call(index);
+      } catch (e) {
+        alert(e);
+      }
+    }
+  };
+
   const inspectThenGetBikes = async (index) => {
-    console.log("inspect bike");
+    console.log("Inspect bike");
     setInProcess(true);
     try {
       await inspect_bike(index);
@@ -79,7 +111,7 @@ export default function App() {
   };
 
   const returnThenGetBikes = async (index) => {
-    console.log("return bike");
+    console.log("Return bike");
     setInProcess(true);
     try {
       await return_bike(index);
@@ -90,17 +122,6 @@ export default function App() {
       setBikes(bikesFromContract);
     });
     setInProcess(false);
-  };
-
-  const storageDeposit = async () => {
-    try {
-      storage_deposit().then((value) => {
-        console.log("returnd value from storage_deposit: ", value);
-      });
-    } catch (e) {
-      alert("Something went wrong! " + e);
-      return;
-    }
   };
 
   const ftTransfer = async () => {
@@ -114,30 +135,11 @@ export default function App() {
     }
   };
 
-  // TODO: transfer_callを呼ぶ前にft_balanceとかで残高調べてもいいかも -> ガス代節約
-  const ftTransferCall = async (index) => {
-    console.log("call transfer call");
-    try {
-      ft_transfer_call(index);
-    } catch (e) {
-      alert("Something went wrong! " + e);
-    }
+  const getThenSetBalance = async (account_id) => {
+    let user_balance = await ft_balance_of(account_id);
+    setShowBalance(user_balance);
+    setAccountToShowBalance(account_id);
   };
-
-  // 指定アカウントのFT残高を表示
-  //TODO: Notificationでやるか？
-  const showFtBalance = async (account_id) => {
-    ft_balance_of(account_id).then((balance) => {
-      alert(account_id + "has a balace of: " + balance);
-    });
-  };
-
-  //setShowNotification(true);
-  //// remove Notification again after css animation completes
-  //// this allows it to be shown again next time the form is submitted
-  //setTimeout(() => {
-  //  setShowNotification(false);
-  //}, 11000);
 
   // if not signed in, return early with sign-in prompt
   if (!window.walletConnection.isSignedIn()) {
@@ -306,7 +308,7 @@ export default function App() {
                 {index}: bike
                 <button
                   disabled={!bike.available}
-                  onClick={() => ftTransferCall(index)}
+                  onClick={() => trasferFtToUseBike(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   use
@@ -335,91 +337,19 @@ export default function App() {
             );
           })
         )}
-        <button onClick={() => showFtBalance(window.accountId)}>
-          ft_balance_of_signer_account
+        <button onClick={() => getThenSetBalance(window.accountId)}>
+          show my balance
         </button>
-        <button onClick={() => showFtBalance(process.env.CONTRACT_NAME)}>
+        <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
           ft_balance_of_bike_contract
         </button>
         <button onClick={ftTransfer}>transfer</button>
-        <p>
-          Look at that! A Hello World app! This greeting is stored on the NEAR
-          blockchain. Check it out:
-        </p>
-        <ol>
-          <li>
-            Look in <code>src/App.js</code> and <code>src/utils.js</code> –
-            you'll see <code>get_greeting</code> and <code>set_greeting</code>{" "}
-            being called on <code>contract</code>. What's this?
-          </li>
-          <li>
-            Ultimately, this <code>contract</code> code is defined in{" "}
-            <code>assembly/main.ts</code> – this is the source code for your{" "}
-            <a
-              target="_blank"
-              rel="noreferrer"
-              href="https://docs.near.org/docs/develop/contracts/overview"
-            >
-              smart contract
-            </a>
-            .
-          </li>
-          <li>
-            When you run <code>yarn dev</code>, the code in{" "}
-            <code>assembly/main.ts</code> gets deployed to the NEAR testnet. You
-            can see how this happens by looking in <code>package.json</code> at
-            the <code>scripts</code> section to find the <code>dev</code>{" "}
-            command.
-          </li>
-        </ol>
-        <hr />
-        <p>
-          To keep learning, check out{" "}
-          <a target="_blank" rel="noreferrer" href="https://docs.near.org">
-            the NEAR docs
-          </a>{" "}
-          or look through some{" "}
-          <a target="_blank" rel="noreferrer" href="https://examples.near.org">
-            example apps
-          </a>
-          .
-        </p>
+        {accountToShowBalance && (
+          <p>
+            {accountToShowBalance}'s balance: {showBalance}
+          </p>
+        )}
       </main>
-      {showNotification && <Notification />}
     </>
-  );
-}
-
-//TODO: メソッド名が違う
-// this component gets rendered by App after the form is submitted
-function Notification() {
-  const { networkId } = getConfig(process.env.NODE_ENV || "development");
-  const urlPrefix = `https://explorer.${networkId}.near.org/accounts`;
-
-  return (
-    <aside>
-      <a
-        target="_blank"
-        rel="noreferrer"
-        href={`${urlPrefix}/${window.accountId}`}
-      >
-        {window.accountId}
-      </a>
-      {
-        " " /* React trims whitespace around tags; insert literal space character when needed */
-      }
-      called method: 'set_greeting' in contract:{" "}
-      <a
-        target="_blank"
-        rel="noreferrer"
-        href={`${urlPrefix}/${window.bikeContract.contractId}`}
-      >
-        {window.bikeContract.contractId}
-      </a>
-      <footer>
-        <div>✔ Succeeded</div>
-        <div>Just now</div>
-      </footer>
-    </aside>
   );
 }
