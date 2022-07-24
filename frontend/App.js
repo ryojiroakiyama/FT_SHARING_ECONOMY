@@ -31,84 +31,65 @@ export default function App() {
 
   const [bikes, setBikes] = useState([]);
 
+  // トランザクションの処理中を扱うフラグ
   const [inProcess, setInProcess] = useState(false);
 
-  //
+  // ユーザがストレージを登録しているかを扱うフラグ
   const [storageRegistered, setStorageRegistered] = useState(false);
 
-  // The useEffect hook can be used to fire side-effects during render
-  // Learn more: https://reactjs.org/docs/hooks-intro.html
-  React.useEffect(
-    () => {
-      // get_greeting is in near/utils.js
-      get_greeting().then((greetingFromContract) => {
-        setGreeting(greetingFromContract);
-      });
-      get_bikes().then((bikesFromContract) => {
-        console.log(bikesFromContract);
-        setBikes(bikesFromContract);
-      });
-      if (window.accountId != "") {
-        console.log("accountid->:", window.accountId);
-        storage_balance_of(window.accountId).then((balance) => {
-          console.log("storage balance: ", balance);
-          if (balance === null) {
-            setStorageRegistered(false);
-          } else {
-            setStorageRegistered(true);
-          }
-        });
-      }
-    },
-
-    // The second argument to useEffect tells React when to re-run the effect
-    // Use an empty array to specify "only run on first render"
-    // This works because signing into NEAR Wallet reloads the page
-    []
-  );
-
-  // TODO: error内容を出力してみる、そして使うかどうか, tryの中に成功時の処理を移す
-  const callContractMethod = async (method, index) => {
-    console.log("call contract method");
-    setInProcess(true);
-    try {
-      await method(index);
-    } catch (e) {
-      alert(
-        "Something went wrong! " +
-          "Please make sure that you are signed in with the correct account"
-      );
-    }
+  // 初回レンダリング時の処理
+  // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
+  React.useEffect(() => {
+    // get_greeting is in near/utils.js
+    get_greeting().then((greetingFromContract) => {
+      setGreeting(greetingFromContract);
+    });
+    // bikeの情報を取得
     get_bikes().then((bikesFromContract) => {
       console.log(bikesFromContract);
       setBikes(bikesFromContract);
     });
-    setInProcess(false);
-    setShowNotification(true);
-    // remove Notification again after css animation completes
-    // this allows it to be shown again next time the form is submitted
-    setTimeout(() => {
-      setShowNotification(false);
-    }, 11000);
-  };
-
-  const callFtBalanceOf = async (account_id) => {
-    console.log("call ft_balance_of");
-    ft_balance_of(account_id).then((balance) => {
-      console.log("balace is: ", balance);
-    });
-  };
-
-  //TODO: thenをしたらawaitしなくていいのか調査
-  const ftTransfer = async () => {
-    console.log("call transfer");
-    // TODO: awaitつけるとおこらた
-    // error中身 -> ReferenceError: await is not defined
-    try {
-      ft_transfer();
-    } catch (e) {
-      alert("Something went wrong! " + e);
+    // ユーザのアカウントがFTコントラクトに登録されているかを確認
+    // 空文字列(:ユーザがサインイン前)はエラーを引き起こすので条件式
+    if (window.accountId) {
+      // ストレージ残高にnullが返ってくる場合は未登録を意味する
+      storage_balance_of(window.accountId).then((balance) => {
+        console.log("storage balance: ", balance);
+        if (balance === null) {
+          setStorageRegistered(false);
+        } else {
+          setStorageRegistered(true);
+        }
+      });
     }
+  }, []);
+
+  const inspectThenGetBikes = async (index) => {
+    console.log("inspect bike");
+    setInProcess(true);
+    try {
+      await inspect_bike(index);
+    } catch (e) {
+      alert(e);
+    }
+    get_bikes().then((bikesFromContract) => {
+      setBikes(bikesFromContract);
+    });
+    setInProcess(false);
+  };
+
+  const returnThenGetBikes = async (index) => {
+    console.log("return bike");
+    setInProcess(true);
+    try {
+      await return_bike(index);
+    } catch (e) {
+      alert(e);
+    }
+    get_bikes().then((bikesFromContract) => {
+      setBikes(bikesFromContract);
+    });
+    setInProcess(false);
   };
 
   const storageDeposit = async () => {
@@ -122,6 +103,17 @@ export default function App() {
     }
   };
 
+  const ftTransfer = async () => {
+    console.log("call transfer");
+    // TODO: awaitつけるとおこらた
+    // error中身 -> ReferenceError: await is not defined
+    try {
+      ft_transfer();
+    } catch (e) {
+      alert(e);
+    }
+  };
+
   // TODO: transfer_callを呼ぶ前にft_balanceとかで残高調べてもいいかも -> ガス代節約
   const ftTransferCall = async (index) => {
     console.log("call transfer call");
@@ -131,6 +123,21 @@ export default function App() {
       alert("Something went wrong! " + e);
     }
   };
+
+  // 指定アカウントのFT残高を表示
+  //TODO: Notificationでやるか？
+  const showFtBalance = async (account_id) => {
+    ft_balance_of(account_id).then((balance) => {
+      alert(account_id + "has a balace of: " + balance);
+    });
+  };
+
+  //setShowNotification(true);
+  //// remove Notification again after css animation completes
+  //// this allows it to be shown again next time the form is submitted
+  //setTimeout(() => {
+  //  setShowNotification(false);
+  //}, 11000);
 
   // if not signed in, return early with sign-in prompt
   if (!window.walletConnection.isSignedIn()) {
@@ -165,7 +172,6 @@ export default function App() {
     );
   }
 
-  // これだと反応してくれないので一旦だんねん
   if (!storageRegistered) {
     console.log("user is not yet registered");
     return (
@@ -307,7 +313,7 @@ export default function App() {
                 </button>
                 <button
                   disabled={!bike.available}
-                  onClick={() => callContractMethod(inspect_bike, index)}
+                  onClick={() => inspectThenGetBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   inspect
@@ -320,7 +326,7 @@ export default function App() {
                         bike.inspected_by === window.accountId)
                     )
                   }
-                  onClick={() => callContractMethod(return_bike, index)}
+                  onClick={() => returnThenGetBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   return
@@ -329,10 +335,10 @@ export default function App() {
             );
           })
         )}
-        <button onClick={() => callFtBalanceOf(window.accountId)}>
+        <button onClick={() => showFtBalance(window.accountId)}>
           ft_balance_of_signer_account
         </button>
-        <button onClick={() => callFtBalanceOf(process.env.CONTRACT_NAME)}>
+        <button onClick={() => showFtBalance(process.env.CONTRACT_NAME)}>
           ft_balance_of_bike_contract
         </button>
         <button onClick={ftTransfer}>transfer</button>

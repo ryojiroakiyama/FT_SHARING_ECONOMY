@@ -131,12 +131,9 @@ export async function ft_transfer() {
     "300000000000000",
     "1"
   );
-  console.log("reponse is:", response);
   return response;
 }
 
-// TODO: こっちはargなしじゃないと通らなかった, 他も合わせる
-// とりあえず引数固定, 省略
 export async function ft_transfer_call(index) {
   let response = await window.ftContract.ft_transfer_call(
     {
@@ -147,6 +144,5 @@ export async function ft_transfer_call(index) {
     "300000000000000",
     "1"
   );
-  console.log("reponse is:", response);
   return response;
 }
