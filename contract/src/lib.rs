@@ -2,28 +2,14 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, ext_contract,
     json_types::U128,
-    log, near_bindgen,
-    serde::Serialize,
-    AccountId, PromiseOrValue,
+    log, near_bindgen, AccountId, PromiseOrValue,
 };
 
 //TODO: storage系はftの関数ではない？？storage_managementについてもう一度読む
 // https://nomicon.io/Standards/StorageManagement これのコード内コメントのところ
 #[ext_contract(ext_ft)]
 trait FungibleToken {
-    // change methods
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
-    fn ft_transfer_call(
-        &mut self,
-        receiver_id: String,
-        amount: String,
-        memo: Option<String>,
-        msg: String,
-    ) -> U128;
-
-    // view methods
-    fn ft_total_supply(&self) -> String;
-    fn ft_balance_of(&self, account_id: String) -> String;
 }
 
 //TODO: 追加機能集
@@ -39,18 +25,6 @@ enum Bike {
     Available,             // 使用可能
     InUse(AccountId),      // AccountIdによって使用中
     Inspection(AccountId), // AccountIdによって点検中
-}
-
-// Bikeの情報をフロントエンドへ送信する(Json形式へSerialize)際に使用する構造体
-// フロント側で理解しやすいデータ型を用意した方が全体の開発が楽だと判断したので用意
-#[derive(Serialize)]
-#[serde(crate = "near_sdk::serde")]
-pub struct JsonBike {
-    available: bool,
-    in_use: bool,
-    used_by: Option<AccountId>,
-    inspection: bool,
-    inspected_by: Option<AccountId>,
 }
 
 // コントラクトの定義
@@ -79,38 +53,34 @@ impl Default for Contract {
     }
 }
 
+//TODO: 変数名変更
+
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
-    // 各バイクの情報をJsonBikeのベクターで返却
-    pub fn get_bikes(&self) -> Vec<JsonBike> {
-        log!("get_bikes");
-        self.bikes
-            .iter()
-            .map(|bike| {
-                // 全てをfalse or Noneで用意
-                let mut json_bike = JsonBike {
-                    available: false,
-                    in_use: false,
-                    used_by: None,
-                    inspection: false,
-                    inspected_by: None,
-                };
-                // bikeの状態によって各変数を編集する
-                match bike {
-                    Bike::Available => json_bike.available = true,
-                    Bike::InUse(account_id) => {
-                        json_bike.in_use = true;
-                        json_bike.used_by = Some(account_id.clone());
-                    }
-                    Bike::Inspection(account_id) => {
-                        json_bike.inspection = true;
-                        json_bike.inspected_by = Some(account_id.clone());
-                    }
-                };
-                json_bike
-            })
-            .collect()
+    pub fn num_of_bikes(&self) -> usize {
+        self.bikes.len()
+    }
+
+    pub fn is_available(&self, index: usize) -> bool {
+        match self.bikes[index] {
+            Bike::Available => true,
+            _ => false,
+        }
+    }
+
+    pub fn who_is_using(&self, index: usize) -> Option<AccountId> {
+        match &self.bikes[index] {
+            Bike::InUse(account_id) => Some(account_id.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn who_is_inspecting(&self, index: usize) -> Option<AccountId> {
+        match &self.bikes[index] {
+            Bike::Inspection(account_id) => Some(account_id.clone()),
+            _ => None,
+        }
     }
 
     // 以下バイクの状態を変更するメソッド
