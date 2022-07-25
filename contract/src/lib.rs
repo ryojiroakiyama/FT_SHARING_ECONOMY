@@ -53,7 +53,7 @@ impl Default for Contract {
     }
 }
 
-//TODO: 変数名変更
+//TODO: 変数名変更 -> user, inspector_idなど
 
 // Implement the contract structure
 #[near_bindgen]
@@ -83,9 +83,10 @@ impl Contract {
         }
     }
 
-    // 以下バイクの状態を変更するメソッド
-    // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため
+    // 以下バイクの状態を変更するメソッドを定義します.
+    // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため.
 
+    // メソッドを使う
     // 使用可 -> 使用中
     pub fn use_bike(&mut self, index: usize) {
         log!("use_bike");
@@ -146,6 +147,7 @@ impl Contract {
         PromiseOrValue::Value(U128::from(0))
     }
 
+    //TODO: エラー時にエラーを拾えるか？
     pub fn ft_transfer(contract: AccountId, amount: String, receiver: AccountId) {
         ext_ft::ext(contract).with_attached_deposit(1).ft_transfer(
             receiver.to_string(),
