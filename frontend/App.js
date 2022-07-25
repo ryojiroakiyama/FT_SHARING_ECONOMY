@@ -34,33 +34,58 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
-  const createBikes = async () => {
-    let num = await num_of_bikes();
+  // bikesオブジェクトの各要素のフィールドを定義
+  const bikeField = async () => {
+    return { available: false, in_use: false, inspection: false };
+  };
+
+  // 各バイクに関する情報を取得
+  const getSpecificBike = async (index) => {
+    let bike = await bikeField();
+    await is_available(index).then((is_available) => {
+      if (is_available) {
+        bike.available = is_available;
+        return bike;
+      }
+    });
+    await who_is_using(index).then((user_id) => {
+      if (window.accountId === user_id) {
+        bike.in_use = true;
+        return bike;
+      }
+    });
+    await who_is_inspecting(index).then((inspector_id) => {
+      if (window.accountId === inspector_id) {
+        bike.inspection = true;
+      }
+    });
+    return bike;
+  };
+
+  // bikesを作成
+  const getAllBikes = async () => {
+    const num = await num_of_bikes();
     console.log("Num of bikes:", num);
-    let bikes = [];
+    let new_bikes = [];
     for (let i = 0; i < num; i++) {
-      let field = { available: false, in_use: false, inspection: false };
-      field.available = await is_available(i);
-      await who_is_using(i).then((user_id) => {
-        if (window.accountId === user_id) {
-          field.in_use = true;
-        }
-      });
-      await who_is_inspecting(i).then((inspector) => {
-        if (window.accountId === inspector) {
-          field.inspection = true;
-        }
-      });
-      console.log("before push: ", i, ":", field);
-      bikes.push(field);
+      const bike = await getSpecificBike(i);
+      new_bikes.push(bike);
     }
+    setBikes(new_bikes);
+    console.log("set bikes: ", new_bikes);
+  };
+
+  // 特定のバイクの情報をアップデートします
+  const updateBikes = async (index) => {
+    const new_bike = await getSpecificBike(index);
+    bikes[index] = new_bike;
     setBikes(bikes);
-    console.log("set bikes: ", bikes);
+    console.log("update bikes: ", bikes);
   };
 
   // ストレージ残高にnullが返ってくる場合は未登録を意味する
   const isStorageRegistered = async (account_id) => {
-    let balance = await storage_balance_of(account_id);
+    const balance = await storage_balance_of(account_id);
     console.log("user's storage balance: ", balance);
     if (balance === null) {
       console.log("account is not yet registered");
@@ -70,21 +95,20 @@ export default function App() {
     }
   };
 
-  // consol.error
-  // TODO: createBikesはバイク情報を返して, returnで受け取る
+  //TODO: consol.error
 
   // 初回レンダリング時の処理
   // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
   React.useEffect(() => {
-    // bikeの情報を取得
-    createBikes();
+    // 全てのバイクの情報を取得, セットします
+    getAllBikes();
 
-    // ユーザのアカウントがFTコントラクトに登録されているかを確認
+    // ユーザのアカウントがFTコントラクトに登録されているかを確認し, セットします
     const checkStorageRegistered = async (account_id) => {
-      const is = await isStorageRegistered(account_id);
-      setStorageRegistered(is);
+      const is_registered = await isStorageRegistered(account_id);
+      setStorageRegistered(is_registered);
     };
-    // 空文字列(:ユーザがサインイン前)はエラーを引き起こすので条件式
+    // 空文字列(ユーザがサインイン前)はエラーを引き起こすので条件式を使います
     if (window.accountId) {
       checkStorageRegistered(window.accountId);
     }
@@ -105,7 +129,7 @@ export default function App() {
   const trasferFtToUseBike = async (index) => {
     console.log("Use bike");
     // 余分なトランザクションを避けるためにユーザの残高を確認
-    let user_balance = await ft_balance_of(window.accountId);
+    const user_balance = await ft_balance_of(window.accountId);
     if (user_balance < 30) {
       alert("Balance is not enough");
       return;
@@ -118,7 +142,7 @@ export default function App() {
     }
   };
 
-  const inspectThenGetBikes = async (index) => {
+  const inspectThenUpdateBikes = async (index) => {
     console.log("Inspect bike");
     setInProcess(true);
     try {
@@ -126,11 +150,11 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    await createBikes();
+    await updateBikes(index);
     setInProcess(false);
   };
 
-  const returnThenGetBikes = async (index) => {
+  const returnThenUpdateBikes = async (index) => {
     console.log("Return bike");
     setInProcess(true);
     try {
@@ -138,12 +162,12 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    await createBikes();
+    await updateBikes(index);
     setInProcess(false);
   };
 
   const getThenSetBalance = async (account_id) => {
-    let user_balance = await ft_balance_of(account_id);
+    const user_balance = await ft_balance_of(account_id);
     setShowBalance(user_balance);
     setAccountToShowBalance(account_id);
   };
@@ -189,14 +213,12 @@ export default function App() {
           }
           {window.accountId} !
         </h1>
-        {console.log("before loop ", bikes)}
         {inProcess === true ? (
           <p> in process... </p>
         ) : (
           bikes.map((bike, index) => {
             return (
               <div style={{ display: "flex" }}>
-                {console.log("in loop ", index, ":", bike)}
                 {index}: bike
                 <button
                   disabled={!bike.available}
@@ -207,14 +229,14 @@ export default function App() {
                 </button>
                 <button
                   disabled={!bike.available}
-                  onClick={() => inspectThenGetBikes(index)}
+                  onClick={() => inspectThenUpdateBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   inspect
                 </button>
                 <button
                   disabled={!bike.in_use && !bike.inspection}
-                  onClick={() => returnThenGetBikes(index)}
+                  onClick={() => returnThenUpdateBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   return
