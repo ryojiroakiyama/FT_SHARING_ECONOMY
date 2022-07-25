@@ -31,8 +31,7 @@ export async function initContract() {
     {
       // View methods are read only. They don't modify the state, but usually return some value.
       viewMethods: [
-        "get_bikes",
-        "bike_num",
+        "num_of_bikes",
         "is_available",
         "who_is_using",
         "who_is_inspecting",
@@ -69,9 +68,9 @@ export function login() {
   window.walletConnection.requestSignIn(nearConfig.bikeContractName);
 }
 
-export async function get_bikes() {
-  let bikes = await window.bikeContract.get_bikes();
-  return bikes;
+export async function num_of_bikes() {
+  let n = await window.bikeContract.num_of_bikes();
+  return n;
 }
 
 export async function is_available(index) {

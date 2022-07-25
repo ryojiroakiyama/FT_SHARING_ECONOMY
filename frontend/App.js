@@ -6,7 +6,6 @@ import "./assets/css/global.css";
 import {
   login,
   logout,
-  get_bikes,
   return_bike,
   inspect_bike,
   ft_balance_of,
@@ -17,6 +16,7 @@ import {
   is_available,
   who_is_using,
   who_is_inspecting,
+  num_of_bikes,
 } from "./assets/js/near/utils";
 
 export default function App() {
@@ -34,13 +34,35 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
+  const getThenSetBikes = async () => {
+    let num = await num_of_bikes();
+    console.log("Num of bikes:", num);
+    let bikes = [];
+    for (let i = 0; i < num; i++) {
+      let field = { available: false, in_use: false, inspection: false };
+      field.available = await is_available(i);
+      await who_is_using(i).then((user_id) => {
+        if (window.accountId === user_id) {
+          field.in_use = true;
+        }
+      });
+      await who_is_inspecting(i).then((inspector) => {
+        if (window.accountId === inspector) {
+          field.inspection = true;
+        }
+      });
+      console.log("before push: ", i, ":", field);
+      bikes.push(field);
+    }
+    setBikes(bikes);
+    console.log("set bikes: ", bikes);
+  };
+
   // 初回レンダリング時の処理
   // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
   React.useEffect(() => {
     // bikeの情報を取得
-    get_bikes().then((bikesFromContract) => {
-      setBikes(bikesFromContract);
-    });
+    getThenSetBikes();
     // ユーザのアカウントがFTコントラクトに登録されているかを確認
     // 空文字列(:ユーザがサインイン前)はエラーを引き起こすので条件式
     if (window.accountId) {
@@ -55,9 +77,6 @@ export default function App() {
         }
       });
     }
-    is_available(0).then((v) => console.log("available->", v));
-    who_is_using(0).then((v) => console.log("in use->", v));
-    who_is_inspecting(0).then((v) => console.log("inspect->", v));
   }, []);
 
   //storage_depositの呼び出し
@@ -96,9 +115,7 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    get_bikes().then((bikesFromContract) => {
-      setBikes(bikesFromContract);
-    });
+    await getThenSetBikes();
     setInProcess(false);
   };
 
@@ -110,9 +127,7 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    get_bikes().then((bikesFromContract) => {
-      setBikes(bikesFromContract);
-    });
+    await getThenSetBikes();
     setInProcess(false);
   };
 
@@ -133,6 +148,7 @@ export default function App() {
     );
   }
 
+  // if not storage registered, return early with storage register prompt
   if (!isStorageRegistered) {
     return (
       <main>
@@ -159,12 +175,14 @@ export default function App() {
           }
           {window.accountId} !
         </h1>
+        {console.log("before loop ", bikes)}
         {inProcess === true ? (
           <p> in process... </p>
         ) : (
           bikes.map((bike, index) => {
             return (
               <div style={{ display: "flex" }}>
+                {console.log("in loop ", index, ":", bike)}
                 {index}: bike
                 <button
                   disabled={!bike.available}
@@ -181,13 +199,7 @@ export default function App() {
                   inspect
                 </button>
                 <button
-                  disabled={
-                    !(
-                      (bike.in_use && bike.used_by === window.accountId) ||
-                      (bike.inspection &&
-                        bike.inspected_by === window.accountId)
-                    )
-                  }
+                  disabled={!bike.in_use && !bike.inspection}
                   onClick={() => returnThenGetBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
