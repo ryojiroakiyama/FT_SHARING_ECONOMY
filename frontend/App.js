@@ -71,6 +71,7 @@ export default function App() {
   };
 
   // consol.error
+  // TODO: createBikesはバイク情報を返して, returnで受け取る
 
   // 初回レンダリング時の処理
   // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される

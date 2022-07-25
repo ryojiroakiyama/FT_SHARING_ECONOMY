@@ -53,6 +53,8 @@ impl Default for Contract {
     }
 }
 
+//TODO: 変数名変更
+
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
