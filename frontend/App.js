@@ -26,7 +26,7 @@ export default function App() {
   const [inProcess, setInProcess] = useState(false);
 
   // ユーザがストレージを登録しているかを扱うフラグ
-  const [isStorageRegistered, setStorageRegistered] = useState(false);
+  const [storageRegistered, setStorageRegistered] = useState(false);
 
   // 残高表示をするアカウント名
   const [accountToShowBalance, setAccountToShowBalance] = useState("");
@@ -34,7 +34,7 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
-  const getThenSetBikes = async () => {
+  const createBikes = async () => {
     let num = await num_of_bikes();
     console.log("Num of bikes:", num);
     let bikes = [];
@@ -58,24 +58,34 @@ export default function App() {
     console.log("set bikes: ", bikes);
   };
 
+  // ストレージ残高にnullが返ってくる場合は未登録を意味する
+  const isStorageRegistered = async (account_id) => {
+    let balance = await storage_balance_of(account_id);
+    console.log("user's storage balance: ", balance);
+    if (balance === null) {
+      console.log("account is not yet registered");
+      return false;
+    } else {
+      return true;
+    }
+  };
+
+  // consol.error
+
   // 初回レンダリング時の処理
   // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
   React.useEffect(() => {
     // bikeの情報を取得
-    getThenSetBikes();
+    createBikes();
+
     // ユーザのアカウントがFTコントラクトに登録されているかを確認
+    const checkStorageRegistered = async (account_id) => {
+      const is = await isStorageRegistered(account_id);
+      setStorageRegistered(is);
+    };
     // 空文字列(:ユーザがサインイン前)はエラーを引き起こすので条件式
     if (window.accountId) {
-      // ストレージ残高にnullが返ってくる場合は未登録を意味する
-      storage_balance_of(window.accountId).then((balance) => {
-        console.log("user's storage balance: ", balance);
-        if (balance === null) {
-          console.log("account is not yet registered");
-          setStorageRegistered(false);
-        } else {
-          setStorageRegistered(true);
-        }
-      });
+      checkStorageRegistered(window.accountId);
     }
   }, []);
 
@@ -115,7 +125,7 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    await getThenSetBikes();
+    await createBikes();
     setInProcess(false);
   };
 
@@ -127,7 +137,7 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    await getThenSetBikes();
+    await createBikes();
     setInProcess(false);
   };
 
@@ -149,9 +159,12 @@ export default function App() {
   }
 
   // if not storage registered, return early with storage register prompt
-  if (!isStorageRegistered) {
+  if (!storageRegistered) {
     return (
       <main>
+        <button className="link" style={{ float: "right" }} onClick={logout}>
+          Sign out
+        </button>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={storageDeposit}>storage deposit</button>
         </p>

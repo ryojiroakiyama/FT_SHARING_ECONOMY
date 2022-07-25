@@ -9,19 +9,7 @@ use near_sdk::{
 // https://nomicon.io/Standards/StorageManagement これのコード内コメントのところ
 #[ext_contract(ext_ft)]
 trait FungibleToken {
-    // change methods
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
-    fn ft_transfer_call(
-        &mut self,
-        receiver_id: String,
-        amount: String,
-        memo: Option<String>,
-        msg: String,
-    ) -> U128;
-
-    // view methods
-    fn ft_total_supply(&self) -> String;
-    fn ft_balance_of(&self, account_id: String) -> String;
 }
 
 //TODO: 追加機能集
