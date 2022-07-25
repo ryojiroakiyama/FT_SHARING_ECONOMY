@@ -113,6 +113,31 @@ impl Contract {
             .collect()
     }
 
+    pub fn bike_num(&self) -> usize {
+        self.bikes.len()
+    }
+
+    pub fn is_available(&self, index: usize) -> bool {
+        match self.bikes[index] {
+            Bike::Available => true,
+            _ => false,
+        }
+    }
+
+    pub fn who_is_using(&self, index: usize) -> Option<AccountId> {
+        match &self.bikes[index] {
+            Bike::InUse(account_id) => Some(account_id.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn who_is_inspecting(&self, index: usize) -> Option<AccountId> {
+        match &self.bikes[index] {
+            Bike::Inspection(account_id) => Some(account_id.clone()),
+            _ => None,
+        }
+    }
+
     // 以下バイクの状態を変更するメソッド
     // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため
 

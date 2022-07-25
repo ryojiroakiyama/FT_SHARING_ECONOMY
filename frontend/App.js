@@ -14,6 +14,9 @@ import {
   storage_deposit,
   ft_transfer,
   ft_transfer_call,
+  is_available,
+  who_is_using,
+  who_is_inspecting,
 } from "./assets/js/near/utils";
 
 export default function App() {
@@ -52,6 +55,9 @@ export default function App() {
         }
       });
     }
+    is_available(0).then((v) => console.log("available->", v));
+    who_is_using(0).then((v) => console.log("in use->", v));
+    who_is_inspecting(0).then((v) => console.log("inspect->", v));
   }, []);
 
   //storage_depositの呼び出し
