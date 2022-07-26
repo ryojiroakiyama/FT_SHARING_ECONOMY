@@ -127,8 +127,8 @@ export async function storage_balance_of(account_id) {
 export async function storage_deposit() {
   let response = await window.ftContract.storage_deposit(
     {},
-    "300000000000000",
-    "1250000000000000000000"
+    "300000000000000", // attached GAS
+    "1250000000000000000000" // attached deposit in yoctoNEAR
   );
   return response;
 }
