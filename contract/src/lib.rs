@@ -173,6 +173,7 @@ impl Contract {
     }
 }
 
+// トランザクションの実行環境をシュミレーション
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     // テスト環境の構築に必要なものをインポート
@@ -182,9 +183,8 @@ mod tests {
     // Contractのモジュールをインポート
     use super::*;
 
-    // テンプレートを用意
-    // VMContextBuilder: テスト環境(モックされたブロックチェーン)を柔軟に変更できるインターフェース
-    // context(テスト材料)をもとに変更できる
+    // VMContextBuilderのテンプレートを用意
+    // VMContextBuilder: テスト環境(モックされたブロックチェーン)をcontext(テスト材料)をもとに変更できるインターフェース
     fn get_context(predecessor_account_id: AccountId) -> VMContextBuilder {
         let mut builder = VMContextBuilder::new();
         builder
@@ -212,20 +212,6 @@ mod tests {
         }
     }
 
-    // メソッドを呼び出しているアカウントの取得
-    // デフォルトでは"bob.testnet"となっています
-    fn predecessor() -> AccountId {
-        env::predecessor_account_id()
-    }
-
-    // predecessor()と別のアカウントを作成
-    fn another() -> AccountId {
-        // predecessor()に接頭語"a"をつけて, 別のアカウントを表す文字列作成
-        let another_account_string = "a".to_string() + predecessor().as_str();
-        // 文字列からAccountId型に変更
-        another_account_string.try_into().unwrap()
-    }
-
     // use_bike(), who_is_using()のテスト
     #[test]
     fn check_using_account() {
@@ -235,10 +221,11 @@ mod tests {
 
         // チェックに使用するindexを定義
         let test_index = contract.bikes.len() - 1;
-        // バイクを使用, 状態をチェック
+        // バイクを使用
         contract.use_bike(test_index);
 
         testing_env!(context.is_view(true).build());
+        // バイクの状態をチェック
         for i in 0..contract.num_of_bikes() {
             if i == test_index {
                 assert_eq!(accounts(1), contract.who_is_using(i).unwrap());
@@ -248,19 +235,23 @@ mod tests {
         }
     }
 
-    // accounts(0)とかを使う
-
     // inspect_bike(), who_is_inspecting()のテスト
     #[test]
     fn check_inspecting_account() {
+        let mut context = get_context(accounts(1));
+        testing_env!(context.build());
         let mut contract = Contract::new(5);
-        let test_index = contract.bikes.len() - 1;
 
-        // バイクを使用, 状態をチェック
+        // チェックに使用するindexを定義
+        let test_index = contract.bikes.len() - 1;
+        // バイクを点検
         contract.inspect_bike(test_index);
+
+        testing_env!(context.is_view(true).build());
+        // バイクの状態をチェック
         for i in 0..contract.num_of_bikes() {
             if i == test_index {
-                assert_eq!(predecessor(), contract.who_is_inspecting(i).unwrap());
+                assert_eq!(accounts(1), contract.who_is_inspecting(i).unwrap());
             } else {
                 assert!(contract.is_available(i))
             }
@@ -271,27 +262,34 @@ mod tests {
     #[test]
     #[should_panic(expected = "Bike is not available")]
     fn duplicate_use() {
+        let context = get_context(accounts(1));
+        testing_env!(context.build());
         let mut contract = Contract::new(5);
-        let test_index = 0;
-        contract.use_bike(test_index);
-        contract.use_bike(test_index);
+
+        contract.use_bike(0);
+        contract.use_bike(0);
     }
 
     // 重複してバイクを点検->パニックを起こすか確認
     #[test]
     #[should_panic(expected = "Bike is not available")]
     fn duplicate_inspect() {
+        let context = get_context(accounts(1));
+        testing_env!(context.build());
         let mut contract = Contract::new(5);
-        let test_index = 0;
-        contract.inspect_bike(test_index);
-        contract.inspect_bike(test_index);
+
+        contract.inspect_bike(0);
+        contract.inspect_bike(0);
     }
 
-    // 重複してバイクを返却->パニックを起こすか確認
+    // 使用可能状態のバイクを返却->パニックを起こすか確認
     #[test]
     #[should_panic(expected = "Bike is already available")]
     fn duplicate_return() {
+        let context = get_context(accounts(1));
+        testing_env!(context.build());
         let mut contract = Contract::new(5);
+
         contract.return_bike(0);
     }
 
@@ -299,11 +297,15 @@ mod tests {
     #[test]
     #[should_panic(expected = "Fail due to wrong account")]
     fn return_by_other_account() {
+        let mut context = get_context(accounts(1));
+        testing_env!(context.build());
         let mut contract = Contract::new(5);
-        let test_index = contract.bikes.len() - 1;
-        // 別のアカウントによる使用中に設定
-        contract.bikes[test_index] = Bike::InUse(another());
-        // 別のアカウントが使用中のバイクを返却
-        contract.return_bike(test_index);
+
+        // accounts(1)がバイクを使用
+        contract.use_bike(0);
+
+        // accounts(2)でバイクを使用
+        testing_env!(context.predecessor_account_id(accounts(2)).build());
+        contract.return_bike(0);
     }
 }
