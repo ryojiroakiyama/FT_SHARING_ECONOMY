@@ -2,15 +2,13 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, ext_contract,
     json_types::U128,
-    log, near_bindgen, AccountId, PromiseOrValue,
+    log, near_bindgen, AccountId, PanicOnDefault, PromiseOrValue,
 };
 
 #[ext_contract(ext_ft)]
 trait FungibleToken {
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
 }
-
-const NUMBER_OF_BIKES: usize = 5;
 
 // Bikeの状態をenumで管理します.
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
@@ -23,34 +21,30 @@ enum Bike {
 
 // コントラクトの定義
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
     bikes: Vec<Bike>,
 }
 
-//　TODO: initに変更して, 指定した数のsizeでvector作る, DefaultOnPanicにする
-impl Default for Contract {
-    fn default() -> Self {
-        log!("initialize Contract");
-        Self {
-            bikes: {
-                let mut v = Vec::new();
-                let mut index = 0;
-                while index < NUMBER_OF_BIKES {
-                    v.push(Bike::Available);
-                    index += 1;
-                }
-                v
-            },
-        }
-    }
-}
-
-//TODO: 変数名変更 -> user, inspector_idなど
-
 // Implement the contract structure
 #[near_bindgen]
 impl Contract {
+    #[init]
+    pub fn new(num_of_bikes: usize) -> Self {
+        log!("initialize Contract with {} bikes", num_of_bikes);
+        Self {
+            bikes: {
+                let mut bikes = Vec::new();
+                let mut index = 0;
+                while index < num_of_bikes {
+                    bikes.push(Bike::Available);
+                    index += 1;
+                }
+                bikes
+            },
+        }
+    }
+
     pub fn num_of_bikes(&self) -> usize {
         self.bikes.len()
     }
@@ -64,14 +58,14 @@ impl Contract {
 
     pub fn who_is_using(&self, index: usize) -> Option<AccountId> {
         match &self.bikes[index] {
-            Bike::InUse(account_id) => Some(account_id.clone()),
+            Bike::InUse(user_id) => Some(user_id.clone()),
             _ => None,
         }
     }
 
     pub fn who_is_inspecting(&self, index: usize) -> Option<AccountId> {
         match &self.bikes[index] {
-            Bike::Inspection(account_id) => Some(account_id.clone()),
+            Bike::Inspection(inspector_id) => Some(inspector_id.clone()),
             _ => None,
         }
     }
@@ -105,12 +99,16 @@ impl Contract {
         let predecessor = env::predecessor_account_id();
         match &self.bikes[index] {
             Bike::Available => panic!("Bike is already available"),
-            Bike::InUse(account_id) => {
-                assert_eq!(account_id.clone(), predecessor, "Fail due to wrong account");
+            Bike::InUse(user_id) => {
+                assert_eq!(user_id.clone(), predecessor, "Fail due to wrong account");
                 self.bikes[index] = Bike::Available
             }
-            Bike::Inspection(account_id) => {
-                assert_eq!(account_id.clone(), predecessor, "Fail due to wrong account");
+            Bike::Inspection(inspector_id) => {
+                assert_eq!(
+                    inspector_id.clone(),
+                    predecessor,
+                    "Fail due to wrong account"
+                );
                 Self::ft_transfer(
                     "my_ft.testnet".parse().unwrap(),
                     "15".to_string(),
