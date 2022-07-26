@@ -2,7 +2,7 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, ext_contract,
     json_types::U128,
-    log, near_bindgen, AccountId, PanicOnDefault, PromiseOrValue,
+    log, near_bindgen, AccountId, Gas, PanicOnDefault, PromiseOrValue, PromiseResult,
 };
 
 #[ext_contract(ext_ft)]
@@ -103,17 +103,12 @@ impl Contract {
             }
             Bike::Inspection(inspector) => {
                 assert_eq!(inspector.clone(), predecessor, "Fail due to wrong account");
-                Self::ft_transfer(
-                    "my_ft.testnet".parse().unwrap(),
-                    "15".to_string(),
-                    env::predecessor_account_id(),
-                );
-                self.bikes[index] = Bike::Available
+                Self::cross_contract_call_reward_to_inspector(index);
             }
         };
     }
 
-    //　TODO:エラー時にフロント側で無言なのが困る
+    //　TODO:エラー時にフロント側で無言なのが困る, env::panic使ってみる
     // msgでの関数の切り替えなどのできるかも？もう一つの引数か？
     pub fn ft_on_transfer(
         &mut self,
@@ -132,14 +127,42 @@ impl Contract {
         PromiseOrValue::Value(U128::from(0))
     }
 
-    //TODO: エラー時にエラーを拾えるか？
-    pub fn ft_transfer(contract: AccountId, amount: String, receiver: AccountId) {
-        ext_ft::ext(contract).with_attached_deposit(1).ft_transfer(
-            receiver.to_string(),
-            amount,
-            None,
+    pub fn cross_contract_call_reward_to_inspector(index: usize) {
+        let contract_id = "my_ft.testnet".parse().unwrap();
+        let amount = "15".to_string();
+        let receiver_id = env::predecessor_account_id().to_string();
+        let gas = Gas(3_000_000_000_000);
+
+        log!(
+            "{} transfer to {}: {} FT",
+            env::current_account_id(),
+            &receiver_id,
+            &amount
         );
-        log!("{} transfer to {}", env::current_account_id(), receiver);
+
+        // cross contract call
+        // callback関数としてバイクを返却するcallback_return_bikeメソッドを呼び出します.
+        ext_ft::ext(contract_id)
+            .with_attached_deposit(1)
+            .ft_transfer(receiver_id, amount, None)
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(gas)
+                    .callback_return_bike(index),
+            );
+    }
+
+    // callback
+    // cross_contract_call_reward_to_inspectorメソッドの実行後に実行するメソッドを定義
+    #[private]
+    pub fn callback_return_bike(&mut self, index: usize) {
+        assert_eq!(env::promise_results_count(), 1, "This is a callback method");
+        match env::promise_result(0) {
+            PromiseResult::NotReady => unreachable!(),
+            PromiseResult::Failed => panic!("Fail cross-contract call"),
+            // 成功時のみBikeを返却(使用可能に変更)
+            PromiseResult::Successful(_) => self.bikes[index] = Bike::Available,
+        }
     }
 }
 
