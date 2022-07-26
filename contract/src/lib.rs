@@ -5,20 +5,14 @@ use near_sdk::{
     log, near_bindgen, AccountId, PromiseOrValue,
 };
 
-//TODO: storage系はftの関数ではない？？storage_managementについてもう一度読む
-// https://nomicon.io/Standards/StorageManagement これのコード内コメントのところ
 #[ext_contract(ext_ft)]
 trait FungibleToken {
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
 }
 
-//TODO: 追加機能集
-//TODO: ユーザ1人一つしか使用できないようにする
-//TODO: アカウント所持者はバイクの数を増やせる(事前にアカウントのIDを所持しておく)
-
 const NUMBER_OF_BIKES: usize = 5;
 
-// Bikeの状態
+// Bikeの状態をenumで管理します.
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
 #[derive(BorshDeserialize, BorshSerialize)]
 enum Bike {
@@ -35,7 +29,6 @@ pub struct Contract {
 }
 
 //　TODO: initに変更して, 指定した数のsizeでvector作る, DefaultOnPanicにする
-// TODO: 引数でアカウントIDをもらって保存するようにする
 impl Default for Contract {
     fn default() -> Self {
         log!("initialize Contract");
@@ -92,7 +85,7 @@ impl Contract {
         log!("use_bike");
         match &self.bikes[index] {
             Bike::Available => self.bikes[index] = Bike::InUse(env::signer_account_id()),
-            _ => panic!("Not available"),
+            _ => panic!("Bike is not available"),
         }
     }
 
@@ -101,25 +94,23 @@ impl Contract {
         log!("inspect_bike");
         match &self.bikes[index] {
             Bike::Available => self.bikes[index] = Bike::Inspection(env::predecessor_account_id()),
-            _ => panic!("Not available"),
+            _ => panic!("Bike is not available"),
         }
     }
 
-    //TODO: deploy時のdepositを初期時だけにする
-    //TODO:エラー文丁寧に
     // 使用中or点検中 -> 使用可
     pub fn return_bike(&mut self, index: usize) {
         log!("return_bike");
         //predecessor_account_id(): このコントラクトを呼び出しているアカウントを取得
-        let caller = env::predecessor_account_id();
+        let predecessor = env::predecessor_account_id();
         match &self.bikes[index] {
-            Bike::Available => panic!("Already available"),
+            Bike::Available => panic!("Bike is already available"),
             Bike::InUse(account_id) => {
-                assert_eq!(account_id.clone(), caller, "Wrong account");
+                assert_eq!(account_id.clone(), predecessor, "Fail due to wrong account");
                 self.bikes[index] = Bike::Available
             }
             Bike::Inspection(account_id) => {
-                assert_eq!(account_id.clone(), caller, "Wrong account");
+                assert_eq!(account_id.clone(), predecessor, "Fail due to wrong account");
                 Self::ft_transfer(
                     "my_ft.testnet".parse().unwrap(),
                     "15".to_string(),
@@ -130,7 +121,7 @@ impl Contract {
         };
     }
 
-    //TODO: 30支払われたかの確認を入れる
+    //　TODO:エラー時にフロント側で無言なのが困る
     // msgでの関数の切り替えなどのできるかも？もう一つの引数か？
     pub fn ft_on_transfer(
         &mut self,
@@ -138,6 +129,7 @@ impl Contract {
         amount: String,
         msg: String,
     ) -> PromiseOrValue<U128> {
+        assert_eq!(amount, "30", "Require 30FT to use the bike");
         log!(
             "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
             sender_id,
@@ -283,7 +275,7 @@ mod tests {
 
     // 重複してバイクを使用->パニックを起こすか確認
     #[test]
-    #[should_panic(expected = "Not available")]
+    #[should_panic(expected = "Bike is not available")]
     fn duplicate_use() {
         let mut bike = Bike::InUse(caller());
         bike.be_in_use();
@@ -291,7 +283,7 @@ mod tests {
 
     // 重複してバイクを点検->パニックを起こすか確認
     #[test]
-    #[should_panic(expected = "Not available")]
+    #[should_panic(expected = "Bike is not available")]
     fn duplicate_inspect() {
         let mut bike = Bike::Inspection(caller());
         bike.be_inspection();
@@ -299,7 +291,7 @@ mod tests {
 
     // 重複してバイクを使用可能に->パニックを起こすか確認
     #[test]
-    #[should_panic(expected = "Already available")]
+    #[should_panic(expected = "Bike is already available")]
     fn duplicate_return() {
         let mut bike = Bike::Available;
         bike.be_available();
@@ -307,7 +299,7 @@ mod tests {
 
     // 別のアカウントが使用中に使用可能に変更->パニックを起こすか確認
     #[test]
-    #[should_panic(expected = "Wrong account")]
+    #[should_panic(expected = "Fail due to wrong account")]
     fn return_by_other_account() {
         let mut bike = Bike::InUse(another_caller());
         bike.be_available();
