@@ -1,5 +1,5 @@
 import "regenerator-runtime/runtime";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import "./assets/css/global.css";
 
@@ -34,12 +34,16 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
-  // bikesオブジェクトの各要素のフィールドを定義
+  // bikesの各要素のフィールドと各属性の初期値を定義します.
+  // 各属性はログインアカウントと連携した情報になります.
+  // available:  ログインアカウントはバイクを使用可能か否か
+  // in_use:     同じく使用中か否か
+  // inspection: 同じく点検中か否か
   const bikeField = async () => {
     return { available: false, in_use: false, inspection: false };
   };
 
-  // 各バイクに関する情報を取得
+  // 特定のバイクに関する情報を取得, オブジェクトにセットして返却します.
   const getSpecificBike = async (index) => {
     let bike = await bikeField();
     await is_available(index).then((is_available) => {
@@ -62,8 +66,8 @@ export default function App() {
     return bike;
   };
 
-  // bikesを作成
-  const getAllBikes = async () => {
+  // 全てのバイクの情報を取得し, bikesを作成します.
+  const setAllBikes = async () => {
     const num = await num_of_bikes();
     console.log("Num of bikes:", num);
     let new_bikes = [];
@@ -72,21 +76,22 @@ export default function App() {
       new_bikes.push(bike);
     }
     setBikes(new_bikes);
-    console.log("set bikes: ", new_bikes);
+    console.log("Set bikes: ", new_bikes);
   };
 
-  // 特定のバイクの情報をアップデートします
+  // 特定のバイクの情報をアップデートします.
   const updateBikes = async (index) => {
     const new_bike = await getSpecificBike(index);
     bikes[index] = new_bike;
     setBikes(bikes);
-    console.log("update bikes: ", bikes);
+    console.log("Update bikes: ", bikes);
   };
 
-  // ストレージ残高にnullが返ってくる場合は未登録を意味する
+  // ユーザがFTコントラクトにストレージステーキングしているかを確認します.
   const isStorageRegistered = async (account_id) => {
     const balance = await storage_balance_of(account_id);
     console.log("user's storage balance: ", balance);
+    // ストレージ残高にnullが返ってくる場合は未登録を意味します.
     if (balance === null) {
       console.log("account is not yet registered");
       return false;
@@ -95,15 +100,13 @@ export default function App() {
     }
   };
 
-  //TODO: consol.error
+  // 初回レンダリング時の処理.
+  // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行されます.
+  useEffect(() => {
+    // 全てのバイクの情報を取得, bikesにセットします
+    setAllBikes();
 
-  // 初回レンダリング時の処理
-  // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行される
-  React.useEffect(() => {
-    // 全てのバイクの情報を取得, セットします
-    getAllBikes();
-
-    // ユーザのアカウントがFTコントラクトに登録されているかを確認し, セットします
+    // ユーザのアカウントがFTコントラクトに登録されているかを確認します.
     const checkStorageRegistered = async (account_id) => {
       const is_registered = await isStorageRegistered(account_id);
       setStorageRegistered(is_registered);
@@ -114,25 +117,26 @@ export default function App() {
     }
   }, []);
 
-  //storage_depositの呼び出し
+  // ストレージを登録します
   const storageDeposit = async () => {
     try {
       storage_deposit().then((value) => {
-        console.log("Returnd value from storage_deposit: ", value);
+        console.log("Result of storage_deposit: ", value);
       });
     } catch (e) {
       alert(e);
     }
   };
 
-  // ft_trasnfer_callを呼ぶことでBikeコントラクトにFT送金 + Bikeを使用
+  // ft_trasnfer_callを呼ぶことでBikeコントラクトにFT送金+使用するバイクをindexで指定
+  // => Bikeコントラクト側で指定バイクの使用処理が実行されます.
+  // トランザクションへのサイン後は画面がリロードされます.
   const trasferFtToUseBike = async (index) => {
-    console.log("Use bike");
+    console.log("Trasfer FT to use bike");
     // 余分なトランザクションを避けるためにユーザの残高を確認
-    const user_balance = await ft_balance_of(window.accountId);
-    if (user_balance < 30) {
-      alert("Balance is not enough");
-      return;
+    const balance = await ft_balance_of(window.accountId);
+    if (balance < 30) {
+      alert("30 FT is required to use the bike");
     } else {
       try {
         ft_transfer_call(index);
@@ -142,6 +146,7 @@ export default function App() {
     }
   };
 
+  // バイクを点検, 情報をアップデート
   const inspectThenUpdateBikes = async (index) => {
     console.log("Inspect bike");
     setInProcess(true);
@@ -154,6 +159,7 @@ export default function App() {
     setInProcess(false);
   };
 
+  // バイクを返却, 情報をアップデート
   const returnThenUpdateBikes = async (index) => {
     console.log("Return bike");
     setInProcess(true);
@@ -166,13 +172,14 @@ export default function App() {
     setInProcess(false);
   };
 
+  //TODO: 二つ変数使っているのが気になる。。
   const getThenSetBalance = async (account_id) => {
     const user_balance = await ft_balance_of(account_id);
     setShowBalance(user_balance);
     setAccountToShowBalance(account_id);
   };
 
-  // if not signed in, return early with sign-in prompt
+  // サインインしていなければサインイン画面を返却
   if (!window.walletConnection.isSignedIn()) {
     return (
       <main>
@@ -183,7 +190,7 @@ export default function App() {
     );
   }
 
-  // if not storage registered, return early with storage register prompt
+  // ストレージレジスト画面を返却
   if (!storageRegistered) {
     return (
       <main>
@@ -196,8 +203,6 @@ export default function App() {
       </main>
     );
   }
-
-  //TODO: コンポーネントを分ける
 
   return (
     // use React Fragment, <>, to avoid wrapping elements in unnecessary divs

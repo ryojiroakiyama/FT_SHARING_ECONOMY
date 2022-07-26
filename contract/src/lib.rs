@@ -131,6 +131,7 @@ impl Contract {
     }
 
     //TODO: 30支払われたかの確認を入れる
+    // msgでの関数の切り替えなどのできるかも？もう一つの引数か？
     pub fn ft_on_transfer(
         &mut self,
         sender_id: String,
