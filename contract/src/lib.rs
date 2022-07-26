@@ -27,6 +27,8 @@ pub struct Contract {
 }
 
 // Implement the contract structure
+// panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため.
+// 各env::~idの説明を入れる
 #[near_bindgen]
 impl Contract {
     #[init]
@@ -68,48 +70,8 @@ impl Contract {
         }
     }
 
-    // 以下バイクの状態を変更するメソッドを定義します.
-    // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため.
-
-    // メソッドを使う
-    // 使用可 -> 使用中
-    pub fn use_bike(&mut self, index: usize) {
-        log!("use_bike");
-        match &self.bikes[index] {
-            Bike::Available => self.bikes[index] = Bike::InUse(env::signer_account_id()),
-            _ => panic!("Bike is not available"),
-        }
-    }
-
-    // 使用可 -> 点検中
-    pub fn inspect_bike(&mut self, index: usize) {
-        log!("inspect_bike");
-        match &self.bikes[index] {
-            Bike::Available => self.bikes[index] = Bike::Inspection(env::predecessor_account_id()),
-            _ => panic!("Bike is not available"),
-        }
-    }
-
-    // 使用中or点検中 -> 使用可
-    pub fn return_bike(&mut self, index: usize) {
-        log!("return_bike");
-        //predecessor_account_id(): このコントラクトを呼び出しているアカウントを取得
-        let predecessor = env::predecessor_account_id();
-        match &self.bikes[index] {
-            Bike::Available => panic!("Bike is already available"),
-            Bike::InUse(user) => {
-                assert_eq!(user.clone(), predecessor, "Fail due to wrong account");
-                self.bikes[index] = Bike::Available
-            }
-            Bike::Inspection(inspector) => {
-                assert_eq!(inspector.clone(), predecessor, "Fail due to wrong account");
-                Self::cross_contract_call_reward_to_inspector(index);
-            }
-        };
-    }
-
-    //　TODO:エラー時にフロント側で無言なのが困る, env::panic使ってみる
-    // msgでの関数の切り替えなどのできるかも？もう一つの引数か？
+    // FTコントラクトのft_transfer_call()が呼び出された際に実行するメソッド
+    // 30FTの受信を確認して, use_bikeメソッドを呼び出しバイクを使用中に変更します.
     pub fn ft_on_transfer(
         &mut self,
         sender_id: String,
@@ -124,13 +86,55 @@ impl Contract {
             msg
         );
         self.use_bike(msg.parse().unwrap());
+        // 受信したFTは全て受け取るので0を返却.
         PromiseOrValue::Value(U128::from(0))
+    }
+
+    // バイク 使用可 -> 使用中
+    // ft_on_transferによって呼び出されます.
+    fn use_bike(&mut self, index: usize) {
+        // env::signer_account_id(): FTコントラクトのft_transfer_call()を呼び出しているアカウントを取得
+        let user_id = env::signer_account_id();
+        log!("{} uses bike", &user_id);
+        match &self.bikes[index] {
+            Bike::Available => self.bikes[index] = Bike::InUse(user_id),
+            _ => panic!("Bike is not available"),
+        }
+    }
+
+    // バイク 使用可 -> 点検中
+    pub fn inspect_bike(&mut self, index: usize) {
+        // env::predecessor_account_id(): このメソッドを呼び出しているアカウントを取得
+        let inspector_id = env::predecessor_account_id();
+        log!("{} inspects bike", &inspector_id);
+        match &self.bikes[index] {
+            Bike::Available => self.bikes[index] = Bike::Inspection(inspector_id),
+            _ => panic!("Bike is not available"),
+        }
+    }
+
+    // バイク 使用中or点検中 -> 使用可
+    pub fn return_bike(&mut self, index: usize) {
+        // env::predecessor_account_id(): このメソッドを呼び出しているアカウントを取得
+        let predecessor = env::predecessor_account_id();
+        log!("{} returns bike", &predecessor);
+        match &self.bikes[index] {
+            Bike::Available => panic!("Bike is already available"),
+            Bike::InUse(user) => {
+                assert_eq!(user.clone(), predecessor, "Fail due to wrong account");
+                self.bikes[index] = Bike::Available
+            }
+            Bike::Inspection(inspector) => {
+                assert_eq!(inspector.clone(), predecessor, "Fail due to wrong account");
+                Self::cross_contract_call_transfer(index);
+            }
+        };
     }
 
     // cross contract call
     // FTコントラクトのft_transferメソッドを呼び出し(cross contract call),
     // 点検をしてくれたユーザのアカウントへ報酬として15FTを送信します.
-    pub fn cross_contract_call_reward_to_inspector(index: usize) {
+    pub fn cross_contract_call_transfer(index: usize) {
         let contract_id = "my_ft.testnet".parse().unwrap();
         let amount = "15".to_string();
         let receiver_id = env::predecessor_account_id().to_string();
@@ -173,8 +177,9 @@ impl Contract {
 mod tests {
     use super::*;
 
+    // newメソッドのテスト
     #[test]
-    fn check_default() {
+    fn test_new() {
         let init_num = 5;
         let contract = Contract::new(init_num);
         assert_eq!(contract.num_of_bikes(), init_num);
@@ -197,9 +202,9 @@ mod tests {
         another_account_string.try_into().unwrap()
     }
 
-    // バイクの状態を変更して, bikeの状態を確認
-    //#[test]
-    fn change_state_then_get_states() {
+    // use_bike(), who_is_using()のテスト
+    #[test]
+    fn check_using_account() {
         let mut contract = Contract::new(5);
         let test_index = contract.bikes.len() - 1;
 
@@ -212,15 +217,16 @@ mod tests {
                 assert!(contract.is_available(i))
             }
         }
+    }
 
-        // バイクを返却, 状態をチェック
-        contract.return_bike(test_index);
-        for i in 0..contract.num_of_bikes() {
-            assert!(contract.is_available(i))
-        }
+    // inspect_bike(), who_is_inspecting()のテスト
+    #[test]
+    fn check_inspecting_account() {
+        let mut contract = Contract::new(5);
+        let test_index = contract.bikes.len() - 1;
 
-        // バイクを点検, 状態をチェック
-        contract.use_bike(test_index);
+        // バイクを使用, 状態をチェック
+        contract.inspect_bike(test_index);
         for i in 0..contract.num_of_bikes() {
             if i == test_index {
                 assert_eq!(predecessor(), contract.who_is_inspecting(i).unwrap());
@@ -228,20 +234,22 @@ mod tests {
                 assert!(contract.is_available(i))
             }
         }
-
-        // バイクを返却, 状態をチェック
-        contract.return_bike(test_index);
-        for i in 0..contract.num_of_bikes() {
-            assert!(contract.is_available(i))
-        }
     }
-
-    //TODO:duplicate ft_transfer
 
     // 重複してバイクを点検->パニックを起こすか確認
     #[test]
     #[should_panic(expected = "Bike is not available")]
     fn duplicate_use() {
+        let mut contract = Contract::new(5);
+        let test_index = 0;
+        contract.use_bike(test_index);
+        contract.use_bike(test_index);
+    }
+
+    // 重複してバイクを点検->パニックを起こすか確認
+    #[test]
+    #[should_panic(expected = "Bike is not available")]
+    fn duplicate_inspect() {
         let mut contract = Contract::new(5);
         let test_index = 0;
         contract.inspect_bike(test_index);
