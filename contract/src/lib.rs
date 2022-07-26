@@ -173,15 +173,39 @@ impl Contract {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
+    // テスト環境の構築に必要なものをインポート
+    use near_sdk::test_utils::{accounts, VMContextBuilder};
+    use near_sdk::testing_env;
+
+    // Contractのモジュールをインポート
     use super::*;
+
+    // テンプレートを用意
+    // VMContextBuilder: テスト環境(モックされたブロックチェーン)を柔軟に変更できるインターフェース
+    // context(テスト材料)をもとに変更できる
+    fn get_context(predecessor_account_id: AccountId) -> VMContextBuilder {
+        let mut builder = VMContextBuilder::new();
+        builder
+            .current_account_id(accounts(0))
+            .signer_account_id(predecessor_account_id.clone())
+            .predecessor_account_id(predecessor_account_id);
+        builder
+    }
 
     // newメソッドのテスト
     #[test]
     fn test_new() {
+        // コンテクスト用意
+        let mut context = get_context(accounts(1));
+        // テスト環境を初期化
+        testing_env!(context.build());
         let init_num = 5;
         let contract = Contract::new(init_num);
+
+        // view関数のみ実行する環境に初期化
+        testing_env!(context.is_view(true).build());
         assert_eq!(contract.num_of_bikes(), init_num);
         for i in 0..init_num {
             assert!(contract.is_available(i))
@@ -205,19 +229,26 @@ mod tests {
     // use_bike(), who_is_using()のテスト
     #[test]
     fn check_using_account() {
+        let mut context = get_context(accounts(1));
+        testing_env!(context.build());
         let mut contract = Contract::new(5);
-        let test_index = contract.bikes.len() - 1;
 
+        // チェックに使用するindexを定義
+        let test_index = contract.bikes.len() - 1;
         // バイクを使用, 状態をチェック
         contract.use_bike(test_index);
+
+        testing_env!(context.is_view(true).build());
         for i in 0..contract.num_of_bikes() {
             if i == test_index {
-                assert_eq!(predecessor(), contract.who_is_using(i).unwrap());
+                assert_eq!(accounts(1), contract.who_is_using(i).unwrap());
             } else {
                 assert!(contract.is_available(i))
             }
         }
     }
+
+    // accounts(0)とかを使う
 
     // inspect_bike(), who_is_inspecting()のテスト
     #[test]
