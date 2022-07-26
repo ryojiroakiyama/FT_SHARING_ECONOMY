@@ -127,6 +127,9 @@ impl Contract {
         PromiseOrValue::Value(U128::from(0))
     }
 
+    // cross contract call
+    // FTコントラクトのft_transferメソッドを呼び出し(cross contract call),
+    // 点検をしてくれたユーザのアカウントへ報酬として15FTを送信します.
     pub fn cross_contract_call_reward_to_inspector(index: usize) {
         let contract_id = "my_ft.testnet".parse().unwrap();
         let amount = "15".to_string();
