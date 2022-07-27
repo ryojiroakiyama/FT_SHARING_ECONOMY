@@ -5,6 +5,8 @@ use near_sdk::{
     log, near_bindgen, AccountId, Gas, PanicOnDefault, PromiseOrValue, PromiseResult,
 };
 
+// TODO: ストレージを登録した人にトークンを付与する仕組み作る, フロントでトークン付与を呼び出すようにする
+
 #[ext_contract(ext_ft)]
 trait FungibleToken {
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
