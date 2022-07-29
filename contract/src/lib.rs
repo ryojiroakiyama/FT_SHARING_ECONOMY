@@ -2,10 +2,10 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, ext_contract,
     json_types::U128,
-    log, near_bindgen, AccountId, Gas, PanicOnDefault, PromiseOrValue, PromiseResult,
+    log, near_bindgen, AccountId, Gas, PanicOnDefault, Promise, PromiseOrValue, PromiseResult,
 };
 
-// TODO: ストレージを登録した人にトークンを付与する仕組み作る, フロントでトークン付与を呼び出すようにする
+const FT_CONTRACT_ACCOUNT: &str = "my_ft.testnet";
 
 #[ext_contract(ext_ft)]
 trait FungibleToken {
@@ -30,7 +30,6 @@ pub struct Contract {
 
 // Implement the contract structure
 // panicやassertの使用について: 処理ができない場合はなるべく早くプログラムを停止させることでトランザクションにかかる余分なガス代を削減するため.
-// 各env::~idの説明を入れる
 #[near_bindgen]
 impl Contract {
     #[init]
@@ -72,7 +71,30 @@ impl Contract {
         }
     }
 
-    // FTコントラクトのft_transfer_call()が呼び出された際に実行するメソッド
+    // 新しいユーザへ30FT送信します.
+    pub fn transfer_ft_to_new_user(new_user_id: AccountId) {
+        Self::cross_contract_call_transfer(new_user_id.to_string(), "30".to_string());
+    }
+
+    // cross contract callを利用してreceiver_idへamount分ftを送信します.
+    fn cross_contract_call_transfer(receiver_id: String, amount: String) -> Promise {
+        let contract_id = FT_CONTRACT_ACCOUNT.parse().unwrap();
+
+        log!(
+            "{} transfer to {}: {} FT",
+            env::current_account_id(),
+            &receiver_id,
+            &amount
+        );
+
+        // cross contract call
+        ext_ft::ext(contract_id)
+            .with_attached_deposit(1)
+            .ft_transfer(receiver_id, amount, None)
+    }
+
+    // FTコントラクトのft_transfer_call()が呼び出された際に実行するメソッドです.
+    // ユーザがft_transfer_callを使用して30FTをこのコントラクトへ送信 -> ユーザによってバイクを使用中に変更.
     // 30FTの受信を確認して, use_bikeメソッドを呼び出しバイクを使用中に変更します.
     pub fn ft_on_transfer(
         &mut self,
@@ -96,10 +118,10 @@ impl Contract {
     // ft_on_transferによって呼び出されます.
     fn use_bike(&mut self, index: usize) {
         // env::signer_account_id(): FTコントラクトのft_transfer_call()を呼び出しているアカウントを取得
-        let user_id = env::signer_account_id();
-        log!("{} uses bike", &user_id);
+        let signer_id = env::signer_account_id();
+        log!("{} uses bike", &signer_id);
         match &self.bikes[index] {
-            Bike::Available => self.bikes[index] = Bike::InUse(user_id),
+            Bike::Available => self.bikes[index] = Bike::InUse(signer_id),
             _ => panic!("Bike is not available"),
         }
     }
@@ -107,10 +129,10 @@ impl Contract {
     // バイク 使用可 -> 点検中
     pub fn inspect_bike(&mut self, index: usize) {
         // env::predecessor_account_id(): このメソッドを呼び出しているアカウントを取得
-        let inspector_id = env::predecessor_account_id();
-        log!("{} inspects bike", &inspector_id);
+        let predecessor_id = env::predecessor_account_id();
+        log!("{} inspects bike", &predecessor_id);
         match &self.bikes[index] {
-            Bike::Available => self.bikes[index] = Bike::Inspection(inspector_id),
+            Bike::Available => self.bikes[index] = Bike::Inspection(predecessor_id),
             _ => panic!("Bike is not available"),
         }
     }
@@ -118,47 +140,38 @@ impl Contract {
     // バイク 使用中or点検中 -> 使用可
     pub fn return_bike(&mut self, index: usize) {
         // env::predecessor_account_id(): このメソッドを呼び出しているアカウントを取得
-        let predecessor = env::predecessor_account_id();
-        log!("{} returns bike", &predecessor);
+        let predecessor_id = env::predecessor_account_id();
+        log!("{} returns bike", &predecessor_id);
         match &self.bikes[index] {
             Bike::Available => panic!("Bike is already available"),
             Bike::InUse(user) => {
-                assert_eq!(user.clone(), predecessor, "Fail due to wrong account");
+                assert_eq!(user.clone(), predecessor_id, "Fail due to wrong account");
                 self.bikes[index] = Bike::Available
             }
             Bike::Inspection(inspector) => {
-                assert_eq!(inspector.clone(), predecessor, "Fail due to wrong account");
-                Self::cross_contract_call_transfer(index);
+                assert_eq!(
+                    inspector.clone(),
+                    predecessor_id,
+                    "Fail due to wrong account"
+                );
+                Self::return_inspected_bike(index);
             }
         };
     }
 
-    // cross contract call
     // FTコントラクトのft_transferメソッドを呼び出し(cross contract call),
     // 点検をしてくれたユーザのアカウントへ報酬として15FTを送信します.
-    pub fn cross_contract_call_transfer(index: usize) {
-        let contract_id = "my_ft.testnet".parse().unwrap();
-        let amount = "15".to_string();
-        let receiver_id = env::predecessor_account_id().to_string();
-        let gas = Gas(3_000_000_000_000);
-
-        log!(
-            "{} transfer to {}: {} FT",
-            env::current_account_id(),
-            &receiver_id,
-            &amount
-        );
-
-        // cross contract call
+    pub fn return_inspected_bike(index: usize) {
         // callback関数としてバイクを返却するcallback_return_bikeメソッドを呼び出します.
-        ext_ft::ext(contract_id)
-            .with_attached_deposit(1)
-            .ft_transfer(receiver_id, amount, None)
-            .then(
-                Self::ext(env::current_account_id())
-                    .with_static_gas(gas)
-                    .callback_return_bike(index),
-            );
+        Self::cross_contract_call_transfer(
+            env::predecessor_account_id().to_string(),
+            "15".to_string(),
+        )
+        .then(
+            Self::ext(env::current_account_id())
+                .with_static_gas(Gas(3_000_000_000_000))
+                .callback_return_bike(index),
+        );
     }
 
     // callback
