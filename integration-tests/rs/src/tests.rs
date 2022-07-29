@@ -7,6 +7,8 @@ use workspaces::{network::Sandbox, Account, Contract, Worker, AccountId};
 const BIKE_WASM_FILEPATH: &str = "../../out/main.wasm";
 const FT_CONTRACT_ACCOUNT: &str = "my_ft.testnet";
 
+const FT_TOTAL_SUPPLY: &str = "1000";
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // initiate environemnt
@@ -23,7 +25,13 @@ async fn main() -> anyhow::Result<()> {
     let owner = worker.root_account().unwrap();
     let alice = owner
         .create_subaccount(&worker, "alice")
-        .initial_balance(parse_near!("30 N"))
+        .initial_balance(parse_near!("100 N"))
+        .transact()
+        .await?
+        .into_result()?;
+    let bob = owner
+        .create_subaccount(&worker, "bob")
+        .initial_balance(parse_near!("100 N"))
         .transact()
         .await?
         .into_result()?;
@@ -33,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
         .call(&worker, "new_default_meta")
         .args_json(serde_json::json!({
             "owner_id": owner.id(),
-            "total_supply": "100".to_string(),
+            "total_supply": FT_TOTAL_SUPPLY.to_string(),
         }))?
         .transact()
         .await?;
@@ -57,8 +65,8 @@ async fn main() -> anyhow::Result<()> {
 
     // begin tests
      test_init(&owner, &ft_contract, &bike_contract, &worker).await?;
-     test_transfer_call_to_use_bike(&owner, &alice, &ft_contract, &bike_contract, &worker)
-     .await?;
+     test_transfer_call_to_use_bike(&owner, &alice, &ft_contract, &bike_contract, &worker).await?;
+     test_transfer_ft_to_user_inspected_bike(&owner, &bob, &ft_contract, &bike_contract, &worker).await?;
     Ok(())
 }
 
@@ -97,7 +105,7 @@ async fn test_init(
         .transact()
         .await?
         .json()?;
-    assert_eq!(owner_balance.0, 100);
+    assert_eq!(owner_balance.0, FT_TOTAL_SUPPLY.parse::<u128>().unwrap());
     println!("      Passed ✅ test_init");
     Ok(())
 }
@@ -111,7 +119,7 @@ async fn test_transfer_call_to_use_bike(
 ) -> anyhow::Result<()> {
     let user_initial_amount = 100;
     let transfer_amount = 30;
-    let test_index = 0;
+    let test_bike_index = 0;
 
     // user, storage registory
     user.call(&worker, ft_contract.id(), "storage_deposit")
@@ -141,21 +149,30 @@ async fn test_transfer_call_to_use_bike(
         .args_json(serde_json::json!({
             "receiver_id": bike_contract.id(),
             "amount": transfer_amount.to_string(),
-            "msg": test_index.to_string(),
+            "msg": test_bike_index.to_string(),
         }))?
         .deposit(1)
         .gas(300000000000000)
         .transact()
         .await?;
 
-    // test_indexのバイクの使用者がuseであるか確認
+    // test_bike_indexのバイクの使用者がuserであるか確認
     let bike_user_id: AccountId = bike_contract
         .call(&worker, "who_is_using")
-        .args_json(json!({"index": test_index}))?
+        .args_json(json!({"index": test_bike_index}))?
         .transact()
         .await?
         .json()?;
     assert_eq!(user.id().clone(), bike_user_id);
+
+    // return_bike()の呼び出し
+    user.call(&worker, bike_contract.id(), "return_bike")
+        .args_json(serde_json::json!({
+            "index": test_bike_index,
+        }))?
+        .gas(300000000000000)
+        .transact()
+        .await?;
 
     // userの残高の確認
     let user_balance: U128 = ft_contract
@@ -176,5 +193,87 @@ async fn test_transfer_call_to_use_bike(
     assert_eq!(bike_contract.0, transfer_amount);
 
     println!("      Passed ✅ test_transfer_call_to_use_bike");
+    Ok(())
+}
+
+
+async fn test_transfer_ft_to_user_inspected_bike(
+    owner: &Account,
+    user: &Account,
+    ft_contract: &Contract,
+    bike_contract: &Contract,
+    worker: &Worker<Sandbox>,
+) -> anyhow::Result<()> {
+    let remuneration_amount = 15;
+    let test_bike_index = 0;
+
+    // user, storage registory
+    user.call(&worker, ft_contract.id(), "storage_deposit")
+        .args_json(serde_json::json!({
+            "account_id": user.id()
+        }))?
+        .deposit(1250000000000000000000)
+        .gas(300000000000000)
+        .transact()
+        .await?;
+
+    // bikeコントラクトのFTの用意
+    // FTコントラクトからFTを送信
+    owner
+        .call(&worker, ft_contract.id(), "ft_transfer")
+        .args_json(serde_json::json!({
+            "receiver_id": bike_contract.id(),
+            "amount": "50".to_string()
+        }))?
+        .deposit(1)
+        .transact()
+        .await?;
+
+    // この時点でのユーザの残高確認
+    let user_balance: U128 = ft_contract
+        .call(&worker, "ft_balance_of")
+        .args_json(json!({"account_id": user.id()}))?
+        .transact()
+        .await?
+        .json()?;
+    assert_eq!(user_balance.0, 0);
+
+    // inspect_bike()の呼び出し
+    user.call(&worker, bike_contract.id(), "inspect_bike")
+        .args_json(serde_json::json!({
+            "index": test_bike_index,
+        }))?
+        .gas(300000000000000)
+        .transact()
+        .await?;
+
+    // この時点でのユーザの残高確認
+    let user_balance: U128 = ft_contract
+        .call(&worker, "ft_balance_of")
+        .args_json(json!({"account_id": user.id()}))?
+        .transact()
+        .await?
+        .json()?;
+    assert_eq!(user_balance.0, 0);
+
+    // return_bike()の呼び出し
+    user.call(&worker, bike_contract.id(), "return_bike")
+        .args_json(serde_json::json!({
+            "index": test_bike_index,
+        }))?
+        .gas(300000000000000)
+        .transact()
+        .await?;
+
+    // ユーザの残高が増えていることを確認
+    let user_balance: U128 = ft_contract
+        .call(&worker, "ft_balance_of")
+        .args_json(json!({"account_id": user.id()}))?
+        .transact()
+        .await?
+        .json()?;
+    assert_eq!(user_balance.0, remuneration_amount);
+
+    println!("      Passed ✅ test_transfer_ft_to_user_inspected_bike");
     Ok(())
 }
