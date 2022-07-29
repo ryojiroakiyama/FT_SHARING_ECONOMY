@@ -17,6 +17,7 @@ import {
   who_is_using,
   who_is_inspecting,
   num_of_bikes,
+  transfer_ft_to_new_user,
 } from "./assets/js/near/utils";
 
 export default function App() {
@@ -117,12 +118,13 @@ export default function App() {
     }
   }, []);
 
-  // ストレージを登録します
+  // ストレージを登録し, bikeコントラクトからユーザに30FTを送信します
   const storageDeposit = async () => {
     try {
       storage_deposit().then((value) => {
         console.log("Result of storage_deposit: ", value);
       });
+      await transfer_ft_to_new_user(window.accountId);
     } catch (e) {
       alert(e);
     }
