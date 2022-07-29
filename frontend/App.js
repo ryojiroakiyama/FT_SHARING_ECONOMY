@@ -118,12 +118,13 @@ export default function App() {
     }
   }, []);
 
-  // ストレージを登録します
+  // ストレージを登録し, bikeコントラクトからユーザに30FTを送信します
   const storageDeposit = async () => {
     try {
       storage_deposit().then((value) => {
         console.log("Result of storage_deposit: ", value);
       });
+      await transfer_ft_to_new_user(window.accountId);
     } catch (e) {
       alert(e);
     }
@@ -251,9 +252,6 @@ export default function App() {
             );
           })
         )}
-        <button onClick={() => transfer_ft_to_new_user(window.accountId)}>
-          test
-        </button>
         <button onClick={() => getThenSetBalance(window.accountId)}>
           show my balance
         </button>
