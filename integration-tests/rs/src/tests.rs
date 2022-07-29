@@ -5,20 +5,21 @@ use workspaces::prelude::*;
 use workspaces::{network::Sandbox, Account, Contract, Worker, AccountId};
 
 const BIKE_WASM_FILEPATH: &str = "../../out/main.wasm";
-const FT_WASM_FILEPATH: &str = "../../fungible_token.wasm";
+const FT_CONTRACT_ACCOUNT: &str = "my_ft.testnet";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // initiate environemnt
     let worker = workspaces::sandbox().await?;
-
-    // deploy contracts
-    let ft_wasm = std::fs::read(FT_WASM_FILEPATH)?;
-    let ft_contract = worker.dev_deploy(&ft_wasm).await?;
+    
+    // deploy bike contract
     let bike_wasm = std::fs::read(BIKE_WASM_FILEPATH)?;
     let bike_contract = worker.dev_deploy(&bike_wasm).await?;
-
-    // create accounts
+    
+    // pull ft contract
+    let ft_contract = pull_contract(&worker).await?;
+    
+    // create user accounts
     let owner = worker.root_account().unwrap();
     let alice = owner
         .create_subaccount(&worker, "alice")
@@ -59,6 +60,19 @@ async fn main() -> anyhow::Result<()> {
      test_transfer_call_to_use_bike(&owner, &alice, &ft_contract, &bike_contract, &worker)
      .await?;
     Ok(())
+}
+
+async fn pull_contract(worker: &Worker<Sandbox>) -> anyhow::Result<Contract> {
+    let testnet = workspaces::testnet_archival().await?;
+    let contract_id: AccountId = FT_CONTRACT_ACCOUNT.parse()?;
+
+    let contract = worker
+        .import_contract(&contract_id, &testnet)
+        .initial_balance(parse_near!("1000 N"))
+        .transact()
+        .await?;
+
+    Ok(contract)
 }
 
 // 初期状態の確認
