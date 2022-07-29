@@ -72,8 +72,8 @@ impl Contract {
     }
 
     // 新しいユーザへ30FT送信します.
-    pub fn transfer_ft_to_new_user(new_use_id: AccountId) {
-        Self::cross_contract_call_transfer(new_use_id.to_string(), "30".to_string());
+    pub fn transfer_ft_to_new_user(new_user_id: AccountId) {
+        Self::cross_contract_call_transfer(new_user_id.to_string(), "30".to_string());
     }
 
     // cross contract callを利用してreceiver_idへamount分ftを送信します.

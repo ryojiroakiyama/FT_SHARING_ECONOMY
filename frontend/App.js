@@ -17,6 +17,7 @@ import {
   who_is_using,
   who_is_inspecting,
   num_of_bikes,
+  transfer_ft_to_new_user,
 } from "./assets/js/near/utils";
 
 export default function App() {
@@ -250,6 +251,9 @@ export default function App() {
             );
           })
         )}
+        <button onClick={() => transfer_ft_to_new_user(window.accountId)}>
+          test
+        </button>
         <button onClick={() => getThenSetBalance(window.accountId)}>
           show my balance
         </button>

@@ -37,7 +37,7 @@ export async function initContract() {
         "who_is_inspecting",
       ],
       // Change methods can modify the state. But you don't receive the returned value when called.
-      changeMethods: ["return_bike", "inspect_bike"],
+      changeMethods: ["return_bike", "inspect_bike", "transfer_ft_to_new_user"],
     }
   );
 
@@ -90,6 +90,13 @@ export async function who_is_using(index) {
 export async function who_is_inspecting(index) {
   let response = await window.bikeContract.who_is_inspecting({
     index: index,
+  });
+  return response;
+}
+
+export async function transfer_ft_to_new_user(account_id) {
+  let response = await window.bikeContract.transfer_ft_to_new_user({
+    new_user_id: account_id,
   });
   return response;
 }
