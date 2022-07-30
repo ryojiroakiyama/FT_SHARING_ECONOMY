@@ -30,14 +30,15 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
-  const [renderingState, setRenderingState] = useState("");
-
   const RenderingStates = {
     SIGNIN: "signin",
     REGISTORY: "registory",
     HOME: "home",
     TRANSACTION: "transaction",
   }
+
+  const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
+
 
   //TODO: いらないstateを削除
 
@@ -212,159 +213,177 @@ export default function App() {
     setAccountToShowBalance(account_id);
   };
 
-  // サインインしていなければサインイン画面を返却
-  if (renderingState === RenderingStates.SIGNIN) {
+  const signOutButton = () => {
     return (
-      <>
+      <button className="link" style={{ float: "right" }} onClick={logout}>
+        Sign out
+      </button>)
+  }
+
+  const unregisterButton = () => {
+    return (
+      <button className="link" style={{ float: "right" }} onClick={storage_unregister}>
+        Unregister
+      </button>)
+  }
+
+  const requireSignIn = () => {
+    return (
+      <div>
       <main>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={login}>Sign in</button>
         </p>
       </main>
-      </>
+      </div>
     );
   }
 
-  // ストレージレジスト画面を返却
-  if (renderingState === RenderingStates.REGISTORY) {
+  const requestRegistory = () => {
     return (
-      <>
-        <button className="link" style={{ float: "right" }} onClick={logout}>
-          Sign out
-        </button>
+      <div>
+        {signOutButton()}
       <main>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={registerThenTransferFt}>storage deposit</button>
         </p>
       </main>
-      </>
+      </div>
     );
   }
 
-  return (
-    // use React Fragment, <>, to avoid wrapping elements in unnecessary divs
-    <>
-      <button className="link" style={{ float: "right" }} onClick={logout}>
-        Sign out
-      </button>
-      <button className="link" style={{ float: "right" }} onClick={storage_unregister}>
-        Unregister
-      </button>
-      <main>
-        <h1>
-          Hello
-          {
-            " " /* React trims whitespace around tags; insert literal space character when needed */
-          }
-          {window.accountId} !
-        </h1>
-        {renderingState === RenderingStates.TRANSACTION ? (
-          <p> in process... </p>
-        ) : (
-          bikes.map((bike, index) => {
-            return (
+  const home = () => {
+    return (
+      <div>
+        {signOutButton()}
+        {unregisterButton()}
+        <main>
+          <h1>
+            Hello
+            {
+              " " /* React trims whitespace around tags; insert literal space character when needed */
+            }
+            {window.accountId} !
+          </h1>
+          {renderingState === RenderingStates.TRANSACTION ? (
+            <p> in process... </p>
+          ) : (
+            bikes.map((bike, index) => {
+              return (
+                <div style={{ display: "flex" }}>
+                  {index}: bike
+                  <button
+                    disabled={!bike.available}
+                    onClick={() => trasferftToUseBike(index)}
+                    style={{ borderRadius: "5px 5px 5px 5px" }}
+                  >
+                    use
+                  </button>
+                  <button
+                    disabled={!bike.available}
+                    onClick={() => inspectBikeThenUpdateBikes(index)}
+                    style={{ borderRadius: "5px 5px 5px 5px" }}
+                  >
+                    inspect
+                  </button>
+                  <button
+                    disabled={!bike.in_use && !bike.inspection}
+                    onClick={() => returnBikeThenUpdateBikes(index)}
+                    style={{ borderRadius: "5px 5px 5px 5px" }}
+                  >
+                    return
+                  </button>
+                </div>
+              );
+            })
+          )}
+          <button onClick={() => getThenSetBalance(window.accountId)}>
+            show my balance
+          </button>
+          <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
+            ft_balance_of_bike_contract
+          </button>
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const { fieldset, account } = event.target.elements;
+              const account_to_check = account.value;
+              fieldset.disabled = true;
+              try {
+                await getThenSetBalance(account_to_check);
+              } catch (e) {
+                alert(e);
+              }
+              fieldset.disabled = false;
+            }}
+          >
+            <fieldset id="fieldset">
+              <label
+                htmlFor="account"
+                style={{
+                  display: "block",
+                  color: "var(--gray)",
+                  marginBottom: "0.5em",
+                }}
+              >
+                type account to check balance
+              </label>
               <div style={{ display: "flex" }}>
-                {index}: bike
-                <button
-                  disabled={!bike.available}
-                  onClick={() => trasferftToUseBike(index)}
-                  style={{ borderRadius: "5px 5px 5px 5px" }}
-                >
-                  use
-                </button>
-                <button
-                  disabled={!bike.available}
-                  onClick={() => inspectBikeThenUpdateBikes(index)}
-                  style={{ borderRadius: "5px 5px 5px 5px" }}
-                >
-                  inspect
-                </button>
-                <button
-                  disabled={!bike.in_use && !bike.inspection}
-                  onClick={() => returnBikeThenUpdateBikes(index)}
-                  style={{ borderRadius: "5px 5px 5px 5px" }}
-                >
-                  return
-                </button>
+                <input autoComplete="off" id="account" style={{ flex: 1 }} />
+                <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
               </div>
-            );
-          })
-        )}
-        <button onClick={() => getThenSetBalance(window.accountId)}>
-          show my balance
-        </button>
-        <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
-          ft_balance_of_bike_contract
-        </button>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const { fieldset, account } = event.target.elements;
-            const account_to_check = account.value;
-            fieldset.disabled = true;
-            try {
-              await getThenSetBalance(account_to_check);
-            } catch (e) {
-              alert(e);
-            }
-            fieldset.disabled = false;
-          }}
-        >
-          <fieldset id="fieldset">
-            <label
-              htmlFor="account"
-              style={{
-                display: "block",
-                color: "var(--gray)",
-                marginBottom: "0.5em",
-              }}
-            >
-              type account to check balance
-            </label>
-            <div style={{ display: "flex" }}>
-              <input autoComplete="off" id="account" style={{ flex: 1 }} />
-              <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
-            </div>
-          </fieldset>
-        </form>
-        {accountToShowBalance && (
-          <p>
-            {accountToShowBalance}'s balance: {showBalance}
-          </p>
-        )}
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            // get elements from the form using their id attribute
-            const { fieldset, account } = event.target.elements;
-            const account_to_transfer = account.value;
-            fieldset.disabled = true;
-            try {
-              await ft_transfer(account_to_transfer);
-            } catch (e) {
-              alert(e);
-            }
-            fieldset.disabled = false;
-          }}
-        >
-          <fieldset id="fieldset">
-            <label
-              htmlFor="account"
-              style={{
-                display: "block",
-                color: "var(--gray)",
-                marginBottom: "0.5em",
-              }}
-            >
-              type account to transfer 30 ft
-            </label>
-            <div style={{ display: "flex" }}>
-              <input autoComplete="off" id="account" style={{ flex: 1 }} />
-              <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
-            </div>
-          </fieldset>
-        </form>
-      </main>
-    </>
-  );
+            </fieldset>
+          </form>
+          {accountToShowBalance && (
+            <p>
+              {accountToShowBalance}'s balance: {showBalance}
+            </p>
+          )}
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              // get elements from the form using their id attribute
+              const { fieldset, account } = event.target.elements;
+              const account_to_transfer = account.value;
+              fieldset.disabled = true;
+              try {
+                await ft_transfer(account_to_transfer);
+              } catch (e) {
+                alert(e);
+              }
+              fieldset.disabled = false;
+            }}
+          >
+            <fieldset id="fieldset">
+              <label
+                htmlFor="account"
+                style={{
+                  display: "block",
+                  color: "var(--gray)",
+                  marginBottom: "0.5em",
+                }}
+              >
+                type account to transfer 30 ft
+              </label>
+              <div style={{ display: "flex" }}>
+                <input autoComplete="off" id="account" style={{ flex: 1 }} />
+                <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
+              </div>
+            </fieldset>
+          </form>
+        </main>
+      </div>
+    );
+  }
+
+  switch (renderingState) {
+    case RenderingStates.SIGNIN:
+        return <div>{requireSignIn()}</div>;
+
+    case RenderingStates.REGISTORY:
+        return <div>{requestRegistory()}</div>;
+
+    case RenderingStates.HOME:
+        return <div>{home()}</div>;
+  }
 }
