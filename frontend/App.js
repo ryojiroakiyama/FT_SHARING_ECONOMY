@@ -42,6 +42,7 @@ export default function App() {
     SIGNIN: "signin",
     REGISTORY: "registory",
     HOME: "home",
+    TRANSACTION: "transaction",
   }
 
   //TODO: いらないstateを削除
@@ -183,6 +184,7 @@ export default function App() {
   const inspectBikeThenUpdateBikes = async (index) => {
     console.log("Inspect bike");
     setInProcess(true);
+    setRenderingState(RenderingStates.TRANSACTION);
 
     try {
       await inspect_bike(index);
@@ -192,6 +194,7 @@ export default function App() {
     await updateBikes(index);
 
     setInProcess(false);
+    setRenderingState(RenderingStates.HOME);
   };
 
   /**
@@ -200,6 +203,7 @@ export default function App() {
   const returnBikeThenUpdateBikes = async (index) => {
     console.log("Return bike");
     setInProcess(true);
+    setRenderingState(RenderingStates.TRANSACTION);
 
     try {
       await return_bike(index);
@@ -209,6 +213,7 @@ export default function App() {
     await updateBikes(index);
 
     setInProcess(false);
+    setRenderingState(RenderingStates.HOME);
   };
 
   //TODO: 二つ変数使っているのが気になる。-> オブジェクトを使う
