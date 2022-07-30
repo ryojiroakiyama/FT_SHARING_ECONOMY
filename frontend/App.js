@@ -24,12 +24,6 @@ import {
 export default function App() {
   const [bikes, setBikes] = useState([]);
 
-  // トランザクションの処理中を扱うフラグ
-  const [inProcess, setInProcess] = useState(false);
-
-  // ユーザがストレージを登録しているかを扱うフラグ
-  const [storageRegistered, setStorageRegistered] = useState(false);
-
   // 残高表示をするアカウント名
   const [accountToShowBalance, setAccountToShowBalance] = useState("");
 
@@ -127,7 +121,6 @@ export default function App() {
     // 未登録の場合はREGISTORYをセットします.
     const checkUserRegistory = async (account_id) => {
       const is_registered = await isRegistered(account_id);
-      setStorageRegistered(is_registered);
       if (!is_registered) {
         setRenderingState(RenderingStates.REGISTORY);
       }
@@ -183,7 +176,6 @@ export default function App() {
    */
   const inspectBikeThenUpdateBikes = async (index) => {
     console.log("Inspect bike");
-    setInProcess(true);
     setRenderingState(RenderingStates.TRANSACTION);
 
     try {
@@ -193,7 +185,6 @@ export default function App() {
     }
     await updateBikes(index);
 
-    setInProcess(false);
     setRenderingState(RenderingStates.HOME);
   };
 
@@ -202,7 +193,6 @@ export default function App() {
    */
   const returnBikeThenUpdateBikes = async (index) => {
     console.log("Return bike");
-    setInProcess(true);
     setRenderingState(RenderingStates.TRANSACTION);
 
     try {
@@ -212,7 +202,6 @@ export default function App() {
     }
     await updateBikes(index);
 
-    setInProcess(false);
     setRenderingState(RenderingStates.HOME);
   };
 
@@ -224,7 +213,7 @@ export default function App() {
   };
 
   // サインインしていなければサインイン画面を返却
-  if (!window.walletConnection.isSignedIn()) {
+  if (renderingState === RenderingStates.SIGNIN) {
     return (
       <>
       <main>
@@ -237,7 +226,7 @@ export default function App() {
   }
 
   // ストレージレジスト画面を返却
-  if (!storageRegistered) {
+  if (renderingState === RenderingStates.REGISTORY) {
     return (
       <>
         <button className="link" style={{ float: "right" }} onClick={logout}>
@@ -269,7 +258,7 @@ export default function App() {
           }
           {window.accountId} !
         </h1>
-        {inProcess === true ? (
+        {renderingState === RenderingStates.TRANSACTION ? (
           <p> in process... </p>
         ) : (
           bikes.map((bike, index) => {
