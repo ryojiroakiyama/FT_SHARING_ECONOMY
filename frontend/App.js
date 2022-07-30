@@ -24,13 +24,12 @@ import {
 
 export default function App() {
 
-  // TODO: 名前変える allbikeinfo
-  const [bikes, setBikes] = useState([]);
+  const [amountToUseBike, setAmountToUseBike] = useState(0);
+  
+  const [allBikeInfo, setAllBikeInfo] = useState([]);
 
   const [toShowBalance, setToShowBalance] = useState(false);
   const [balanceInfo, setBalanceInfo] = useState({});
-
-  const [amountToUseBike, setAmountToUseBike] = useState(0);
 
   const RenderingStates = {
     SIGNIN: "signin",
@@ -38,19 +37,17 @@ export default function App() {
     HOME: "home",
     TRANSACTION: "transaction",
   }
-
   const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
 
   /**
-   * bikeオブジェクトを定義します.
-   * bikesはbikeオブジェクトの配列となります.
+   * bikeInfoオブジェクトを定義します.
+   * allBikeInfoはbikeInfoオブジェクトの配列となります.
    * 各属性はログインアカウントと連携した情報になります.
    * available:  ログインアカウントはバイクを使用可能か否か
    * in_use:     同じく使用中か否か
    * inspection: 同じく点検中か否か
    */
-  //TODO: 名前変えるinitial
-  const bikeField = async () => {
+  const initialBikeInfo = async () => {
     return { available: false, in_use: false, inspection: false };
   };
 
@@ -58,11 +55,8 @@ export default function App() {
     return { account_id: "", balance: 0 };
   };
 
-  /**
-   * indexで指定されたバイクに関するbikeオブジェクトを作成します.
-   */
-  const createBike = async (index) => {
-    let bike = await bikeField();
+  const createBikeInfo = async (index) => {
+    let bike = await initialBikeInfo();
     await is_available(index).then((is_available) => {
       if (is_available) {
         bike.available = is_available;
@@ -83,26 +77,26 @@ export default function App() {
     return bike;
   };
 
-  const createAllBikes = async () => {
+  const createAllBikeInfo = async () => {
     const num = await num_of_bikes();
     console.log("Num of bikes:", num);
 
     let new_bikes = [];
     for (let i = 0; i < num; i++) {
-      const bike = await createBike(i);
+      const bike = await createBikeInfo(i);
       new_bikes.push(bike);
     }
 
-    setBikes(new_bikes);
+    setAllBikeInfo(new_bikes);
     console.log("Set bikes: ", new_bikes);
   };
 
-  const updateBikes = async (index) => {
-    const new_bike = await createBike(index);
+  const updateBikeInfo = async (index) => {
+    const new_bike = await createBikeInfo(index);
 
-    bikes[index] = new_bike;
-    setBikes(bikes);
-    console.log("Update bikes: ", bikes);
+    allBikeInfo[index] = new_bike;
+    setAllBikeInfo(allBikeInfo);
+    console.log("Update bikes: ", allBikeInfo);
   };
 
   /**
@@ -137,7 +131,7 @@ export default function App() {
       }
     };
     
-    createAllBikes();
+    createAllBikeInfo();
     getAmountToUseBike();
 
     // renderingStateを設定します.
@@ -197,7 +191,7 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    await updateBikes(index);
+    await updateBikeInfo(index);
 
     setRenderingState(RenderingStates.HOME);
   };
@@ -214,7 +208,7 @@ export default function App() {
     } catch (e) {
       alert(e);
     }
-    await updateBikes(index);
+    await updateBikeInfo(index);
 
     setRenderingState(RenderingStates.HOME);
   };
@@ -295,7 +289,7 @@ export default function App() {
         {header()}
         <main>
           {
-            bikes.map((bike, index) => {
+            allBikeInfo.map((bike, index) => {
               return (
                 <div style={{ display: "flex" }}>
                   {index}: bike
