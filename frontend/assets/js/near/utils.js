@@ -35,6 +35,8 @@ export async function initContract() {
         "is_available",
         "who_is_using",
         "who_is_inspecting",
+        "amount_to_use_bike",
+        "amount_reward_for_inspections",
       ],
       // Change methods can modify the state. But you don't receive the returned value when called.
       changeMethods: ["return_bike", "inspect_bike", "transfer_ft_to_new_user"],
@@ -76,6 +78,16 @@ export function login() {
 export async function num_of_bikes() {
   let n = await window.bikeContract.num_of_bikes();
   return n;
+}
+
+export async function amount_to_use_bike() {
+  let amount = await window.bikeContract.amount_to_use_bike();
+  return amount;
+}
+
+export async function amount_reward_for_inspections() {
+  let amount = await window.bikeContract.amount_reward_for_inspections();
+  return amount;
 }
 
 export async function is_available(index) {

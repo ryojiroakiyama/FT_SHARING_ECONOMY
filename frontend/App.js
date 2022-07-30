@@ -19,7 +19,9 @@ import {
   num_of_bikes,
   transfer_ft_to_new_user,
   storage_unregister,
+  amount_to_use_bike,
 } from "./assets/js/near/utils";
+import { async } from "regenerator-runtime";
 
 export default function App() {
   const [bikes, setBikes] = useState([]);
@@ -30,6 +32,9 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
+  const [amountToUseBike, setAmountToUseBike] = useState(0);
+  const [amountReward, setAmountReward] = useState(0);
+
   const RenderingStates = {
     SIGNIN: "signin",
     REGISTORY: "registory",
@@ -39,17 +44,22 @@ export default function App() {
 
   const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
 
-  // bikesの各要素のフィールドと各属性の初期値を定義します.
-  // 各属性はログインアカウントと連携した情報になります.
-  // available:  ログインアカウントはバイクを使用可能か否か
-  // in_use:     同じく使用中か否か
-  // inspection: 同じく点検中か否か
+  /**
+   * bikeオブジェクトを定義します.
+   * bikesはbikeオブジェクトの配列となります.
+   * 各属性はログインアカウントと連携した情報になります.
+   * available:  ログインアカウントはバイクを使用可能か否か
+   * in_use:     同じく使用中か否か
+   * inspection: 同じく点検中か否か
+   */
   const bikeField = async () => {
     return { available: false, in_use: false, inspection: false };
   };
 
-  // indexで指定されたバイクに関する情報を取得, オブジェクトにセットして返却します.
-  const getSpecificBike = async (index) => {
+  /**
+   * indexで指定されたバイクに関するbikeオブジェクトを作成します.
+   */
+  const createBike = async (index) => {
     let bike = await bikeField();
     await is_available(index).then((is_available) => {
       if (is_available) {
@@ -71,14 +81,13 @@ export default function App() {
     return bike;
   };
 
-  // 全てのバイクの情報を取得し, bikesを作成します.
-  const setAllBikes = async () => {
+  const createAllBikes = async () => {
     const num = await num_of_bikes();
     console.log("Num of bikes:", num);
 
     let new_bikes = [];
     for (let i = 0; i < num; i++) {
-      const bike = await getSpecificBike(i);
+      const bike = await createBike(i);
       new_bikes.push(bike);
     }
 
@@ -86,16 +95,17 @@ export default function App() {
     console.log("Set bikes: ", new_bikes);
   };
 
-  // indexで指定されたバイクの情報をアップデートします.
   const updateBikes = async (index) => {
-    const new_bike = await getSpecificBike(index);
+    const new_bike = await createBike(index);
 
     bikes[index] = new_bike;
     setBikes(bikes);
     console.log("Update bikes: ", bikes);
   };
 
-  // idで指定されたユーザがftコントラクトに対して登録(Storage Registration)を済ましているかを確認します.
+  /**
+   * idで指定されたユーザがftコントラクトに対して登録(Storage Registration)を済ましているかを確認します.
+   */
   const isRegistered = async (account_id) => {
     const balance = await storage_balance_of(account_id);
     console.log("user's storage balance: ", balance);
@@ -110,19 +120,24 @@ export default function App() {
   };
 
   // 初回レンダリング時の処理.
-  // サイン後にもページがリロードされるので, このコードが実行されます.
+  // サイン後にもブラウザのページがリロードされるので, この内容が実行されます.
   useEffect(() => {
-    // 全てのバイクの情報を取得, bikesにセットします.
-    setAllBikes();
-
-    // ユーザの登録を確認する関数を用意.
-    // 未登録の場合はREGISTORYをセットします.
+    
+    const getAmountToUseBike = async () => {
+      const amount = await amount_to_use_bike();
+      setAmountToUseBike(BigInt(amount))
+    }
+    
     const checkUserRegistory = async (account_id) => {
       const is_registered = await isRegistered(account_id);
       if (!is_registered) {
         setRenderingState(RenderingStates.REGISTORY);
       }
     };
+    
+    createAllBikes();
+    getAmountToUseBike();
+
     // renderingStateを設定します.
     // ユーザがサインインを済ませていなければSIGNINをセットします.
     // 済ませていれば登録を確認します.
@@ -147,7 +162,6 @@ export default function App() {
     }
   };
 
-  //TODO: バイクコントラクト側から30FTを取得してそれを使うようにする
   /**
    * ft_trasnfer_callの実行.
    * bikeコントラクトにft送金+使用するバイクをindexで指定 => bikeコントラクト側で指定バイクの使用処理が実行されます.
@@ -158,8 +172,8 @@ export default function App() {
   
     // 不要なトランザクションを避けるためにユーザの残高を確認
     const balance = await ft_balance_of(window.accountId);
-    if (balance < 30) {
-      alert("30 ft is required to use the bike");
+    if (balance < amountToUseBike) {
+      alert(amountToUseBike + "ft is required to use the bike");
     } else {
       try {
         ft_transfer_call(index);

@@ -1,16 +1,20 @@
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     env, ext_contract,
-    json_types::U128,
+    json_types::{self, U128},
     log, near_bindgen, AccountId, Gas, PanicOnDefault, Promise, PromiseOrValue, PromiseResult,
 };
 
 const FT_CONTRACT_ACCOUNT: &str = "my_ft.testnet";
+const AMOUNT_TO_USE_BIKE: u128 = 30;
+const AMOUNT_REWARD_FOR_INSPECTIONS: u128 = 15;
 
 #[ext_contract(ext_ft)]
 trait FungibleToken {
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
 }
+
+// TODO: github action
 
 // Bikeの状態をenumで管理します.
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
@@ -50,6 +54,14 @@ impl Contract {
         self.bikes.len()
     }
 
+    pub fn amount_to_use_bike(&self) -> U128 {
+        json_types::U128::from(AMOUNT_TO_USE_BIKE)
+    }
+
+    pub fn amount_reward_for_inspections(&self) -> U128 {
+        json_types::U128::from(AMOUNT_REWARD_FOR_INSPECTIONS)
+    }
+
     pub fn is_available(&self, index: usize) -> bool {
         match self.bikes[index] {
             Bike::Available => true,
@@ -71,9 +83,9 @@ impl Contract {
         }
     }
 
-    // 新しいユーザへ30FT送信します.
+    // 新しいユーザへ30ft送信します.
     pub fn transfer_ft_to_new_user(new_user_id: AccountId) {
-        Self::cross_contract_call_transfer(new_user_id.to_string(), "30".to_string());
+        Self::cross_contract_call_transfer(new_user_id.to_string(), AMOUNT_TO_USE_BIKE.to_string());
     }
 
     // cross contract callを利用してreceiver_idへamount分ftを送信します.
@@ -94,15 +106,20 @@ impl Contract {
     }
 
     // FTコントラクトのft_transfer_call()が呼び出された際に実行するメソッドです.
-    // ユーザがft_transfer_callを使用して30FTをこのコントラクトへ送信 -> ユーザによってバイクを使用中に変更.
-    // 30FTの受信を確認して, use_bikeメソッドを呼び出しバイクを使用中に変更します.
+    // ユーザがft_transfer_callを使用して30ftをこのコントラクトへ送信 -> ユーザによってバイクを使用中に変更.
+    // 30ftの受信を確認して, use_bikeメソッドを呼び出しバイクを使用中に変更します.
     pub fn ft_on_transfer(
         &mut self,
         sender_id: String,
         amount: String,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        assert_eq!(amount, "30", "Require 30FT to use the bike");
+        assert_eq!(
+            amount,
+            AMOUNT_TO_USE_BIKE.to_string(),
+            "Require {} ft to use the bike",
+            AMOUNT_TO_USE_BIKE.to_string()
+        );
         log!(
             "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
             sender_id,
@@ -165,7 +182,7 @@ impl Contract {
         // callback関数としてバイクを返却するcallback_return_bikeメソッドを呼び出します.
         Self::cross_contract_call_transfer(
             env::predecessor_account_id().to_string(),
-            "15".to_string(),
+            AMOUNT_REWARD_FOR_INSPECTIONS.to_string(),
         )
         .then(
             Self::ext(env::current_account_id())
