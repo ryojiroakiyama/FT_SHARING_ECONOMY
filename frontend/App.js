@@ -21,19 +21,16 @@ import {
   storage_unregister,
   amount_to_use_bike,
 } from "./assets/js/near/utils";
-import { async } from "regenerator-runtime";
 
 export default function App() {
+
+  // TODO: 名前変える allbikeinfo
   const [bikes, setBikes] = useState([]);
 
-  // 残高表示をするアカウント名
-  const [accountToShowBalance, setAccountToShowBalance] = useState("");
-
-  // 表示する残高
-  const [showBalance, setShowBalance] = useState(0);
+  const [toShowBalance, setToShowBalance] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState({});
 
   const [amountToUseBike, setAmountToUseBike] = useState(0);
-  const [amountReward, setAmountReward] = useState(0);
 
   const RenderingStates = {
     SIGNIN: "signin",
@@ -52,8 +49,13 @@ export default function App() {
    * in_use:     同じく使用中か否か
    * inspection: 同じく点検中か否か
    */
+  //TODO: 名前変えるinitial
   const bikeField = async () => {
     return { available: false, in_use: false, inspection: false };
+  };
+
+  const initialBalanceInfo = async () => {
+    return { account_id: "", balance: 0 };
   };
 
   /**
@@ -217,11 +219,13 @@ export default function App() {
     setRenderingState(RenderingStates.HOME);
   };
 
-  //TODO: 二つ変数使っているのが気になる。-> オブジェクトを使う
-  const getThenSetBalance = async (account_id) => {
-    const user_balance = await ft_balance_of(account_id);
-    setShowBalance(user_balance);
-    setAccountToShowBalance(account_id);
+  const getBalace = async (account_id) => {
+    let balance_info = await initialBalanceInfo();
+    const balance = await ft_balance_of(account_id);
+    balance_info.account_id = account_id;
+    balance_info.balance = balance;
+    setBalanceInfo(balance_info);
+    setToShowBalance(true);
   };
 
   const signOutButton = () => {
@@ -320,10 +324,10 @@ export default function App() {
               );
             })
           }
-          <button onClick={() => getThenSetBalance(window.accountId)}>
+          <button onClick={() => getBalace(window.accountId)}>
             show my balance
           </button>
-          <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
+          <button onClick={() => getBalace(process.env.CONTRACT_NAME)}>
             ft_balance_of_bike_contract
           </button>
           <form
@@ -333,7 +337,7 @@ export default function App() {
               const account_to_check = account.value;
               fieldset.disabled = true;
               try {
-                await getThenSetBalance(account_to_check);
+                await getBalace(account_to_check);
               } catch (e) {
                 alert(e);
               }
@@ -357,9 +361,9 @@ export default function App() {
               </div>
             </fieldset>
           </form>
-          {accountToShowBalance && (
+          {toShowBalance && (
             <p>
-              {accountToShowBalance}'s balance: {showBalance}
+              {balanceInfo.account_id}'s balance: {balanceInfo.balance}
             </p>
           )}
           <form
