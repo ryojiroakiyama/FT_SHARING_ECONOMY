@@ -42,8 +42,9 @@ export default function App() {
     SIGNIN: "signin",
     REGISTORY: "registory",
     HOME: "home",
-    TRANSACTION: "transaction",
   }
+
+  //TODO: いらないstateを削除
 
   // bikesの各要素のフィールドと各属性の初期値を定義します.
   // 各属性はログインアカウントと連携した情報になります.
@@ -140,8 +141,10 @@ export default function App() {
     }
   }, []);
 
-  // 新規ユーザの処理をまとめています.
-  const newUserProcessing = async () => {
+  /**
+   * ユーザが自信を登録.完了したらbikeコントラクトからユーザへftを送る
+   */
+  const registerThenTransferFt = async () => {
     try {
       await storage_deposit().then((value) => {
         console.log("Result of storage_deposit: ", value);
@@ -152,12 +155,16 @@ export default function App() {
     }
   };
 
-  // ft_trasnfer_callを呼ぶことでBikeコントラクトにft送金+使用するバイクをindexで指定
-  // => Bikeコントラクト側で指定バイクの使用処理が実行されます.
-  // トランザクションへのサイン後は画面がリロードされます.
+  //TODO: バイクコントラクト側から30FTを取得してそれを使うようにする
+  /**
+   * ft_trasnfer_callの実行.
+   * bikeコントラクトにft送金+使用するバイクをindexで指定 => bikeコントラクト側で指定バイクの使用処理が実行されます.
+   * トランザクションへのサイン後は画面がリロードされます.
+   */
   const trasferftToUseBike = async (index) => {
-    console.log("Trasfer ft to use bike");
-    // 余分なトランザクションを避けるためにユーザの残高を確認
+    console.log("Transfer ft to use bike");
+  
+    // 不要なトランザクションを避けるためにユーザの残高を確認
     const balance = await ft_balance_of(window.accountId);
     if (balance < 30) {
       alert("30 ft is required to use the bike");
@@ -170,33 +177,41 @@ export default function App() {
     }
   };
 
-  // バイクを点検, 情報をアップデート
-  const inspectThenUpdateBikes = async (index) => {
+  /**
+   * バイクを点検, bikesをアップデート
+   */
+  const inspectBikeThenUpdateBikes = async (index) => {
     console.log("Inspect bike");
     setInProcess(true);
+
     try {
       await inspect_bike(index);
     } catch (e) {
       alert(e);
     }
     await updateBikes(index);
+
     setInProcess(false);
   };
 
-  // バイクを返却, 情報をアップデート
-  const returnThenUpdateBikes = async (index) => {
+  /**
+   * バイクを返却, bikesをアップデート
+   */
+  const returnBikeThenUpdateBikes = async (index) => {
     console.log("Return bike");
     setInProcess(true);
+
     try {
       await return_bike(index);
     } catch (e) {
       alert(e);
     }
     await updateBikes(index);
+
     setInProcess(false);
   };
 
-  //TODO: 二つ変数使っているのが気になる。。
+  //TODO: 二つ変数使っているのが気になる。-> オブジェクトを使う
   const getThenSetBalance = async (account_id) => {
     const user_balance = await ft_balance_of(account_id);
     setShowBalance(user_balance);
@@ -206,11 +221,13 @@ export default function App() {
   // サインインしていなければサインイン画面を返却
   if (!window.walletConnection.isSignedIn()) {
     return (
+      <>
       <main>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
           <button onClick={login}>Sign in</button>
         </p>
       </main>
+      </>
     );
   }
 
@@ -223,7 +240,7 @@ export default function App() {
         </button>
       <main>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
-          <button onClick={newUserProcessing}>storage deposit</button>
+          <button onClick={registerThenTransferFt}>storage deposit</button>
         </p>
       </main>
       </>
@@ -263,14 +280,14 @@ export default function App() {
                 </button>
                 <button
                   disabled={!bike.available}
-                  onClick={() => inspectThenUpdateBikes(index)}
+                  onClick={() => inspectBikeThenUpdateBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   inspect
                 </button>
                 <button
                   disabled={!bike.in_use && !bike.inspection}
-                  onClick={() => returnThenUpdateBikes(index)}
+                  onClick={() => returnBikeThenUpdateBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   return
