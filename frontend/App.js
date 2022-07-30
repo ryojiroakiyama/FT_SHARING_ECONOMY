@@ -18,6 +18,7 @@ import {
   who_is_inspecting,
   num_of_bikes,
   transfer_ft_to_new_user,
+  storage_unregister,
 } from "./assets/js/near/utils";
 
 export default function App() {
@@ -35,6 +36,15 @@ export default function App() {
   // 表示する残高
   const [showBalance, setShowBalance] = useState(0);
 
+  const [renderingState, setRenderingState] = useState("");
+
+  const RenderingStates = {
+    SIGNIN: "signin",
+    REGISTORY: "registory",
+    HOME: "home",
+    TRANSACTION: "transaction",
+  }
+
   // bikesの各要素のフィールドと各属性の初期値を定義します.
   // 各属性はログインアカウントと連携した情報になります.
   // available:  ログインアカウントはバイクを使用可能か否か
@@ -44,7 +54,7 @@ export default function App() {
     return { available: false, in_use: false, inspection: false };
   };
 
-  // 特定のバイクに関する情報を取得, オブジェクトにセットして返却します.
+  // indexで指定されたバイクに関する情報を取得, オブジェクトにセットして返却します.
   const getSpecificBike = async (index) => {
     let bike = await bikeField();
     await is_available(index).then((is_available) => {
@@ -71,27 +81,31 @@ export default function App() {
   const setAllBikes = async () => {
     const num = await num_of_bikes();
     console.log("Num of bikes:", num);
+
     let new_bikes = [];
     for (let i = 0; i < num; i++) {
       const bike = await getSpecificBike(i);
       new_bikes.push(bike);
     }
+
     setBikes(new_bikes);
     console.log("Set bikes: ", new_bikes);
   };
 
-  // 特定のバイクの情報をアップデートします.
+  // indexで指定されたバイクの情報をアップデートします.
   const updateBikes = async (index) => {
     const new_bike = await getSpecificBike(index);
+
     bikes[index] = new_bike;
     setBikes(bikes);
     console.log("Update bikes: ", bikes);
   };
 
-  // ユーザがFTコントラクトにストレージステーキングしているかを確認します.
-  const isStorageRegistered = async (account_id) => {
+  // idで指定されたユーザがftコントラクトに対して登録(Storage Registration)を済ましているかを確認します.
+  const isRegistered = async (account_id) => {
     const balance = await storage_balance_of(account_id);
     console.log("user's storage balance: ", balance);
+
     // ストレージ残高にnullが返ってくる場合は未登録を意味します.
     if (balance === null) {
       console.log("account is not yet registered");
@@ -102,43 +116,51 @@ export default function App() {
   };
 
   // 初回レンダリング時の処理.
-  // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行されます.
+  // サイン後にもページがリロードされるので, このコードが実行されます.
   useEffect(() => {
-    // 全てのバイクの情報を取得, bikesにセットします
+    // 全てのバイクの情報を取得, bikesにセットします.
     setAllBikes();
 
-    // ユーザのアカウントがFTコントラクトに登録されているかを確認します.
-    const checkStorageRegistered = async (account_id) => {
-      const is_registered = await isStorageRegistered(account_id);
+    // ユーザの登録を確認する関数を用意.
+    // 未登録の場合はREGISTORYをセットします.
+    const checkUserRegistory = async (account_id) => {
+      const is_registered = await isRegistered(account_id);
       setStorageRegistered(is_registered);
+      if (!is_registered) {
+        setRenderingState(RenderingStates.REGISTORY);
+      }
     };
-    // 空文字列(ユーザがサインイン前)はエラーを引き起こすので条件式を使います
-    if (window.accountId) {
-      checkStorageRegistered(window.accountId);
+    // renderingStateを設定します.
+    // ユーザがサインインを済ませていなければSIGNINをセットします.
+    // 済ませていれば登録を確認します.
+    if (!window.walletConnection.isSignedIn()) {
+      setRenderingState(RenderingStates.SIGNIN);
+    } else {
+      checkUserRegistory(window.accountId);
     }
   }, []);
 
-  // ストレージを登録し, bikeコントラクトからユーザに30FTを送信します
-  const storageDeposit = async () => {
+  // 新規ユーザの処理をまとめています.
+  const newUserProcessing = async () => {
     try {
-      storage_deposit().then((value) => {
+      await storage_deposit().then((value) => {
         console.log("Result of storage_deposit: ", value);
+        await transfer_ft_to_new_user(window.accountId);
       });
-      await transfer_ft_to_new_user(window.accountId);
     } catch (e) {
       alert(e);
     }
   };
 
-  // ft_trasnfer_callを呼ぶことでBikeコントラクトにFT送金+使用するバイクをindexで指定
+  // ft_trasnfer_callを呼ぶことでBikeコントラクトにft送金+使用するバイクをindexで指定
   // => Bikeコントラクト側で指定バイクの使用処理が実行されます.
   // トランザクションへのサイン後は画面がリロードされます.
-  const trasferFtToUseBike = async (index) => {
-    console.log("Trasfer FT to use bike");
+  const trasferftToUseBike = async (index) => {
+    console.log("Trasfer ft to use bike");
     // 余分なトランザクションを避けるためにユーザの残高を確認
     const balance = await ft_balance_of(window.accountId);
     if (balance < 30) {
-      alert("30 FT is required to use the bike");
+      alert("30 ft is required to use the bike");
     } else {
       try {
         ft_transfer_call(index);
@@ -195,14 +217,16 @@ export default function App() {
   // ストレージレジスト画面を返却
   if (!storageRegistered) {
     return (
-      <main>
+      <>
         <button className="link" style={{ float: "right" }} onClick={logout}>
           Sign out
         </button>
+      <main>
         <p style={{ textAlign: "center", marginTop: "2.5em" }}>
-          <button onClick={storageDeposit}>storage deposit</button>
+          <button onClick={newUserProcessing}>storage deposit</button>
         </p>
       </main>
+      </>
     );
   }
 
@@ -211,6 +235,9 @@ export default function App() {
     <>
       <button className="link" style={{ float: "right" }} onClick={logout}>
         Sign out
+      </button>
+      <button className="link" style={{ float: "right" }} onClick={storage_unregister}>
+        Unregister
       </button>
       <main>
         <h1>
@@ -229,7 +256,7 @@ export default function App() {
                 {index}: bike
                 <button
                   disabled={!bike.available}
-                  onClick={() => trasferFtToUseBike(index)}
+                  onClick={() => trasferftToUseBike(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   use
@@ -318,7 +345,7 @@ export default function App() {
                 marginBottom: "0.5em",
               }}
             >
-              type account to transfer 30 FT
+              type account to transfer 30 ft
             </label>
             <div style={{ display: "flex" }}>
               <input autoComplete="off" id="account" style={{ flex: 1 }} />
