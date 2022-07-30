@@ -35,6 +35,8 @@ export async function initContract() {
         "is_available",
         "who_is_using",
         "who_is_inspecting",
+        "amount_to_use_bike",
+        "amount_reward_for_inspections",
       ],
       // Change methods can modify the state. But you don't receive the returned value when called.
       changeMethods: ["return_bike", "inspect_bike", "transfer_ft_to_new_user"],
@@ -49,7 +51,12 @@ export async function initContract() {
       // View methods are read only. They don't modify the state, but usually return some value.
       viewMethods: ["ft_balance_of", "storage_balance_of"],
       // Change methods can modify the state. But you don't receive the returned value when called.
-      changeMethods: ["storage_deposit", "ft_transfer", "ft_transfer_call"],
+      changeMethods: [
+        "storage_deposit",
+        "storage_unregister",
+        "ft_transfer",
+        "ft_transfer_call",
+      ],
     }
   );
 }
@@ -71,6 +78,16 @@ export function login() {
 export async function num_of_bikes() {
   let n = await window.bikeContract.num_of_bikes();
   return n;
+}
+
+export async function amount_to_use_bike() {
+  let amount = await window.bikeContract.amount_to_use_bike();
+  return amount;
+}
+
+export async function amount_reward_for_inspections() {
+  let amount = await window.bikeContract.amount_reward_for_inspections();
+  return amount;
 }
 
 export async function is_available(index) {
@@ -129,13 +146,20 @@ export async function storage_balance_of(account_id) {
   return balance;
 }
 
-// 引数を省略してユーザにstorage_depositを負わせる
-// ガス代テキトー
 export async function storage_deposit() {
   let response = await window.ftContract.storage_deposit(
-    {},
-    "300000000000000", // attached GAS
-    "1250000000000000000000" // attached deposit in yoctoNEAR
+    {}, // 引数の省略: このメソッドを呼び出しているアカウントを登録
+    "300000000000000", // ガス代の制限
+    "1250000000000000000000" // デポジットの制限 (in yoctoNEAR)
+  );
+  return response;
+}
+
+export async function storage_unregister() {
+  let response = await window.ftContract.storage_unregister(
+    { force: true }, // アカウントの情報を無視して登録を解除する, 所持しているftはバーンされる
+    "300000000000000",
+    "1"
   );
   return response;
 }

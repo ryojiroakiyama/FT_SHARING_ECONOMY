@@ -7,7 +7,8 @@ use workspaces::{network::Sandbox, Account, Contract, Worker, AccountId};
 const BIKE_WASM_FILEPATH: &str = "../../out/main.wasm";
 const FT_CONTRACT_ACCOUNT: &str = "my_ft.testnet";
 
-const FT_TOTAL_SUPPLY: &str = "1000";
+const FT_TOTAL_SUPPLY: u128 = 1000;
+const AMOUNT_TO_USE_BIKE: u128 = 30;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -98,6 +99,16 @@ async fn test_init(
         .await?
         .json()?;
     assert_eq!(res, 5);
+
+    // バイクを使用するのに必要なftの確認
+    let res: U128 = owner
+        .call(&worker, bike_contract.id(), "amount_to_use_bike")
+        .args_json(json!({}))?
+        .transact()
+        .await?
+        .json()?;
+    assert_eq!(res.0, AMOUNT_TO_USE_BIKE);
+
     // ownerの残高の確認
     let owner_balance: U128 = ft_contract
         .call(&worker, "ft_balance_of")
@@ -105,7 +116,7 @@ async fn test_init(
         .transact()
         .await?
         .json()?;
-    assert_eq!(owner_balance.0, FT_TOTAL_SUPPLY.parse::<u128>().unwrap());
+    assert_eq!(owner_balance.0, FT_TOTAL_SUPPLY);
     println!("      Passed ✅ test_init");
     Ok(())
 }
@@ -118,7 +129,6 @@ async fn test_transfer_call_to_use_bike(
     worker: &Worker<Sandbox>,
 ) -> anyhow::Result<()> {
     let user_initial_amount = 100;
-    let transfer_amount = 30;
     let test_bike_index = 0;
 
     // user, storage registory
@@ -148,7 +158,7 @@ async fn test_transfer_call_to_use_bike(
     user.call(&worker, ft_contract.id(), "ft_transfer_call")
         .args_json(serde_json::json!({
             "receiver_id": bike_contract.id(),
-            "amount": transfer_amount.to_string(),
+            "amount": AMOUNT_TO_USE_BIKE.to_string(),
             "msg": test_bike_index.to_string(),
         }))?
         .deposit(1)
@@ -181,7 +191,7 @@ async fn test_transfer_call_to_use_bike(
         .transact()
         .await?
         .json()?;
-    assert_eq!(user_balance.0, user_initial_amount - transfer_amount);
+    assert_eq!(user_balance.0, user_initial_amount - AMOUNT_TO_USE_BIKE);
 
     // bike_contractの残高の確認
     let bike_contract: U128 = ft_contract
@@ -190,7 +200,7 @@ async fn test_transfer_call_to_use_bike(
         .transact()
         .await?
         .json()?;
-    assert_eq!(bike_contract.0, transfer_amount);
+    assert_eq!(bike_contract.0, AMOUNT_TO_USE_BIKE);
 
     println!("      Passed ✅ test_transfer_call_to_use_bike");
     Ok(())

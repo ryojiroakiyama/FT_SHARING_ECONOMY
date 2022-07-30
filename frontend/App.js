@@ -18,35 +18,44 @@ import {
   who_is_inspecting,
   num_of_bikes,
   transfer_ft_to_new_user,
+  storage_unregister,
+  amount_to_use_bike,
 } from "./assets/js/near/utils";
 
 export default function App() {
-  const [bikes, setBikes] = useState([]);
+  const [amountToUseBike, setAmountToUseBike] = useState(0);
 
-  // トランザクションの処理中を扱うフラグ
-  const [inProcess, setInProcess] = useState(false);
+  const [allBikeInfo, setAllBikeInfo] = useState([]);
 
-  // ユーザがストレージを登録しているかを扱うフラグ
-  const [storageRegistered, setStorageRegistered] = useState(false);
+  const [toShowBalance, setToShowBalance] = useState(false);
+  const [balanceInfo, setBalanceInfo] = useState({});
 
-  // 残高表示をするアカウント名
-  const [accountToShowBalance, setAccountToShowBalance] = useState("");
+  const RenderingStates = {
+    SIGNIN: "signin",
+    REGISTORY: "registory",
+    HOME: "home",
+    TRANSACTION: "transaction",
+  };
+  const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
 
-  // 表示する残高
-  const [showBalance, setShowBalance] = useState(0);
-
-  // bikesの各要素のフィールドと各属性の初期値を定義します.
-  // 各属性はログインアカウントと連携した情報になります.
-  // available:  ログインアカウントはバイクを使用可能か否か
-  // in_use:     同じく使用中か否か
-  // inspection: 同じく点検中か否か
-  const bikeField = async () => {
+  /**
+   * bikeInfoオブジェクトを定義します.
+   * allBikeInfoはbikeInfoオブジェクトの配列となります.
+   * 各属性はログインアカウントと連携した情報になります.
+   * available:  ログインアカウントはバイクを使用可能か否か
+   * in_use:     同じく使用中か否か
+   * inspection: 同じく点検中か否か
+   */
+  const initialBikeInfo = async () => {
     return { available: false, in_use: false, inspection: false };
   };
 
-  // 特定のバイクに関する情報を取得, オブジェクトにセットして返却します.
-  const getSpecificBike = async (index) => {
-    let bike = await bikeField();
+  const initialBalanceInfo = async () => {
+    return { account_id: "", balance: 0 };
+  };
+
+  const createBikeInfo = async (index) => {
+    let bike = await initialBikeInfo();
     await is_available(index).then((is_available) => {
       if (is_available) {
         bike.available = is_available;
@@ -67,31 +76,35 @@ export default function App() {
     return bike;
   };
 
-  // 全てのバイクの情報を取得し, bikesを作成します.
-  const setAllBikes = async () => {
+  const createAllBikeInfo = async () => {
     const num = await num_of_bikes();
     console.log("Num of bikes:", num);
+
     let new_bikes = [];
     for (let i = 0; i < num; i++) {
-      const bike = await getSpecificBike(i);
+      const bike = await createBikeInfo(i);
       new_bikes.push(bike);
     }
-    setBikes(new_bikes);
+
+    setAllBikeInfo(new_bikes);
     console.log("Set bikes: ", new_bikes);
   };
 
-  // 特定のバイクの情報をアップデートします.
-  const updateBikes = async (index) => {
-    const new_bike = await getSpecificBike(index);
-    bikes[index] = new_bike;
-    setBikes(bikes);
-    console.log("Update bikes: ", bikes);
+  const updateBikeInfo = async (index) => {
+    const new_bike = await createBikeInfo(index);
+
+    allBikeInfo[index] = new_bike;
+    setAllBikeInfo(allBikeInfo);
+    console.log("Update bikes: ", allBikeInfo);
   };
 
-  // ユーザがFTコントラクトにストレージステーキングしているかを確認します.
-  const isStorageRegistered = async (account_id) => {
+  /**
+   * idで指定されたユーザがftコントラクトに対して登録(Storage Registration)を済ましているかを確認します.
+   */
+  const isRegistered = async (account_id) => {
     const balance = await storage_balance_of(account_id);
     console.log("user's storage balance: ", balance);
+
     // ストレージ残高にnullが返ってくる場合は未登録を意味します.
     if (balance === null) {
       console.log("account is not yet registered");
@@ -102,43 +115,59 @@ export default function App() {
   };
 
   // 初回レンダリング時の処理.
-  // サイン後はページがリロードされるので,サインをする度に初回レンダリングで実行されます.
+  // サイン後にもブラウザのページがリロードされるので, この内容が実行されます.
   useEffect(() => {
-    // 全てのバイクの情報を取得, bikesにセットします
-    setAllBikes();
-
-    // ユーザのアカウントがFTコントラクトに登録されているかを確認します.
-    const checkStorageRegistered = async (account_id) => {
-      const is_registered = await isStorageRegistered(account_id);
-      setStorageRegistered(is_registered);
+    const getAmountToUseBike = async () => {
+      const amount = await amount_to_use_bike();
+      setAmountToUseBike(BigInt(amount));
     };
-    // 空文字列(ユーザがサインイン前)はエラーを引き起こすので条件式を使います
-    if (window.accountId) {
-      checkStorageRegistered(window.accountId);
+
+    const checkUserRegistory = async (account_id) => {
+      const is_registered = await isRegistered(account_id);
+      if (!is_registered) {
+        setRenderingState(RenderingStates.REGISTORY);
+      }
+    };
+
+    createAllBikeInfo();
+    getAmountToUseBike();
+
+    // renderingStateを設定します.
+    // ユーザがサインインを済ませていなければSIGNINをセットします.
+    // 済ませていれば登録を確認します.
+    if (!window.walletConnection.isSignedIn()) {
+      setRenderingState(RenderingStates.SIGNIN);
+    } else {
+      checkUserRegistory(window.accountId);
     }
   }, []);
 
-  // ストレージを登録し, bikeコントラクトからユーザに30FTを送信します
-  const storageDeposit = async () => {
+  /**
+   * ユーザが自信を登録.完了したらbikeコントラクトからユーザへftを送る
+   */
+  const registerThenTransferFt = async () => {
     try {
-      storage_deposit().then((value) => {
+      await storage_deposit().then(async (value) => {
         console.log("Result of storage_deposit: ", value);
+        await transfer_ft_to_new_user(window.accountId);
       });
-      await transfer_ft_to_new_user(window.accountId);
     } catch (e) {
       alert(e);
     }
   };
 
-  // ft_trasnfer_callを呼ぶことでBikeコントラクトにFT送金+使用するバイクをindexで指定
-  // => Bikeコントラクト側で指定バイクの使用処理が実行されます.
-  // トランザクションへのサイン後は画面がリロードされます.
-  const trasferFtToUseBike = async (index) => {
-    console.log("Trasfer FT to use bike");
-    // 余分なトランザクションを避けるためにユーザの残高を確認
+  /**
+   * ft_trasnfer_callの実行.
+   * bikeコントラクトにft送金+使用するバイクをindexで指定 => bikeコントラクト側で指定バイクの使用処理が実行されます.
+   * トランザクションへのサイン後は画面がリロードされます.
+   */
+  const trasferftToUseBike = async (index) => {
+    console.log("Transfer ft to use bike");
+
+    // 不要なトランザクションを避けるためにユーザの残高を確認
     const balance = await ft_balance_of(window.accountId);
-    if (balance < 30) {
-      alert("30 FT is required to use the bike");
+    if (balance < amountToUseBike) {
+      alert(amountToUseBike + "ft is required to use the bike");
     } else {
       try {
         ft_transfer_call(index);
@@ -148,185 +177,238 @@ export default function App() {
     }
   };
 
-  // バイクを点検, 情報をアップデート
-  const inspectThenUpdateBikes = async (index) => {
+  /**
+   * バイクを点検, bikesをアップデート
+   */
+  const inspectBikeThenUpdateBikes = async (index) => {
     console.log("Inspect bike");
-    setInProcess(true);
+    setRenderingState(RenderingStates.TRANSACTION);
+
     try {
       await inspect_bike(index);
     } catch (e) {
       alert(e);
     }
-    await updateBikes(index);
-    setInProcess(false);
+    await updateBikeInfo(index);
+
+    setRenderingState(RenderingStates.HOME);
   };
 
-  // バイクを返却, 情報をアップデート
-  const returnThenUpdateBikes = async (index) => {
+  /**
+   * バイクを返却, bikesをアップデート
+   */
+  const returnBikeThenUpdateBikes = async (index) => {
     console.log("Return bike");
-    setInProcess(true);
+    setRenderingState(RenderingStates.TRANSACTION);
+
     try {
       await return_bike(index);
     } catch (e) {
       alert(e);
     }
-    await updateBikes(index);
-    setInProcess(false);
+    await updateBikeInfo(index);
+
+    setRenderingState(RenderingStates.HOME);
   };
 
-  //TODO: 二つ変数使っているのが気になる。。
-  const getThenSetBalance = async (account_id) => {
-    const user_balance = await ft_balance_of(account_id);
-    setShowBalance(user_balance);
-    setAccountToShowBalance(account_id);
+  const getBalace = async (account_id) => {
+    let balance_info = await initialBalanceInfo();
+    const balance = await ft_balance_of(account_id);
+    balance_info.account_id = account_id;
+    balance_info.balance = balance;
+    setBalanceInfo(balance_info);
+    setToShowBalance(true);
   };
 
-  // サインインしていなければサインイン画面を返却
-  if (!window.walletConnection.isSignedIn()) {
+  const signOutButton = () => {
     return (
-      <main>
-        <p style={{ textAlign: "center", marginTop: "2.5em" }}>
-          <button onClick={login}>Sign in</button>
-        </p>
-      </main>
-    );
-  }
-
-  // ストレージレジスト画面を返却
-  if (!storageRegistered) {
-    return (
-      <main>
-        <button className="link" style={{ float: "right" }} onClick={logout}>
-          Sign out
-        </button>
-        <p style={{ textAlign: "center", marginTop: "2.5em" }}>
-          <button onClick={storageDeposit}>storage deposit</button>
-        </p>
-      </main>
-    );
-  }
-
-  return (
-    // use React Fragment, <>, to avoid wrapping elements in unnecessary divs
-    <>
       <button className="link" style={{ float: "right" }} onClick={logout}>
         Sign out
       </button>
-      <main>
-        <h1>
-          Hello
-          {
-            " " /* React trims whitespace around tags; insert literal space character when needed */
-          }
-          {window.accountId} !
-        </h1>
-        {inProcess === true ? (
+    );
+  };
+
+  const unregisterButton = () => {
+    return (
+      <button
+        className="link"
+        style={{ float: "right" }}
+        onClick={storage_unregister}
+      >
+        Unregister
+      </button>
+    );
+  };
+
+  const requireSignIn = () => {
+    return (
+      <div>
+        <main>
+          <p style={{ textAlign: "center", marginTop: "2.5em" }}>
+            <button onClick={login}>Sign in</button>
+          </p>
+        </main>
+      </div>
+    );
+  };
+
+  const requestRegistory = () => {
+    return (
+      <div>
+        {signOutButton()}
+        <main>
+          <p style={{ textAlign: "center", marginTop: "2.5em" }}>
+            <button onClick={registerThenTransferFt}>storage deposit</button>
+          </p>
+        </main>
+      </div>
+    );
+  };
+
+  const header = () => {
+    return <h1>Hello {window.accountId} !</h1>;
+  };
+
+  const transaction = () => {
+    return (
+      <div>
+        {signOutButton()}
+        {unregisterButton()}
+        {header()}
+        <main>
           <p> in process... </p>
-        ) : (
-          bikes.map((bike, index) => {
+        </main>
+      </div>
+    );
+  };
+
+  const home = () => {
+    return (
+      <div>
+        {signOutButton()}
+        {unregisterButton()}
+        {header()}
+        <main>
+          {allBikeInfo.map((bike, index) => {
             return (
               <div style={{ display: "flex" }}>
                 {index}: bike
                 <button
                   disabled={!bike.available}
-                  onClick={() => trasferFtToUseBike(index)}
+                  onClick={() => trasferftToUseBike(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   use
                 </button>
                 <button
                   disabled={!bike.available}
-                  onClick={() => inspectThenUpdateBikes(index)}
+                  onClick={() => inspectBikeThenUpdateBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   inspect
                 </button>
                 <button
                   disabled={!bike.in_use && !bike.inspection}
-                  onClick={() => returnThenUpdateBikes(index)}
+                  onClick={() => returnBikeThenUpdateBikes(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   return
                 </button>
               </div>
             );
-          })
-        )}
-        <button onClick={() => getThenSetBalance(window.accountId)}>
-          show my balance
-        </button>
-        <button onClick={() => getThenSetBalance(process.env.CONTRACT_NAME)}>
-          ft_balance_of_bike_contract
-        </button>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const { fieldset, account } = event.target.elements;
-            const account_to_check = account.value;
-            fieldset.disabled = true;
-            try {
-              await getThenSetBalance(account_to_check);
-            } catch (e) {
-              alert(e);
-            }
-            fieldset.disabled = false;
-          }}
-        >
-          <fieldset id="fieldset">
-            <label
-              htmlFor="account"
-              style={{
-                display: "block",
-                color: "var(--gray)",
-                marginBottom: "0.5em",
-              }}
-            >
-              type account to check balance
-            </label>
-            <div style={{ display: "flex" }}>
-              <input autoComplete="off" id="account" style={{ flex: 1 }} />
-              <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
-            </div>
-          </fieldset>
-        </form>
-        {accountToShowBalance && (
-          <p>
-            {accountToShowBalance}'s balance: {showBalance}
-          </p>
-        )}
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            // get elements from the form using their id attribute
-            const { fieldset, account } = event.target.elements;
-            const account_to_transfer = account.value;
-            fieldset.disabled = true;
-            try {
-              await ft_transfer(account_to_transfer);
-            } catch (e) {
-              alert(e);
-            }
-            fieldset.disabled = false;
-          }}
-        >
-          <fieldset id="fieldset">
-            <label
-              htmlFor="account"
-              style={{
-                display: "block",
-                color: "var(--gray)",
-                marginBottom: "0.5em",
-              }}
-            >
-              type account to transfer 30 FT
-            </label>
-            <div style={{ display: "flex" }}>
-              <input autoComplete="off" id="account" style={{ flex: 1 }} />
-              <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
-            </div>
-          </fieldset>
-        </form>
-      </main>
-    </>
-  );
+          })}
+          <button onClick={() => getBalace(window.accountId)}>
+            show my balance
+          </button>
+          <button onClick={() => getBalace(process.env.CONTRACT_NAME)}>
+            ft_balance_of_bike_contract
+          </button>
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const { fieldset, account } = event.target.elements;
+              const account_to_check = account.value;
+              fieldset.disabled = true;
+              try {
+                await getBalace(account_to_check);
+              } catch (e) {
+                alert(e);
+              }
+              fieldset.disabled = false;
+            }}
+          >
+            <fieldset id="fieldset">
+              <label
+                htmlFor="account"
+                style={{
+                  display: "block",
+                  color: "var(--gray)",
+                  marginBottom: "0.5em",
+                }}
+              >
+                type account to check balance
+              </label>
+              <div style={{ display: "flex" }}>
+                <input autoComplete="off" id="account" style={{ flex: 1 }} />
+                <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
+              </div>
+            </fieldset>
+          </form>
+          {toShowBalance && (
+            <p>
+              {balanceInfo.account_id}'s balance: {balanceInfo.balance}
+            </p>
+          )}
+          <form
+            onSubmit={async (event) => {
+              event.preventDefault();
+              // get elements from the form using their id attribute
+              const { fieldset, account } = event.target.elements;
+              const account_to_transfer = account.value;
+              fieldset.disabled = true;
+              try {
+                await ft_transfer(account_to_transfer);
+              } catch (e) {
+                alert(e);
+              }
+              fieldset.disabled = false;
+            }}
+          >
+            <fieldset id="fieldset">
+              <label
+                htmlFor="account"
+                style={{
+                  display: "block",
+                  color: "var(--gray)",
+                  marginBottom: "0.5em",
+                }}
+              >
+                type account to transfer 30 ft
+              </label>
+              <div style={{ display: "flex" }}>
+                <input autoComplete="off" id="account" style={{ flex: 1 }} />
+                <button style={{ borderRadius: "0 5px 5px 0" }}>
+                  transfer
+                </button>
+              </div>
+            </fieldset>
+          </form>
+        </main>
+      </div>
+    );
+  };
+
+  switch (renderingState) {
+    case RenderingStates.SIGNIN:
+      return <div>{requireSignIn()}</div>;
+
+    case RenderingStates.REGISTORY:
+      return <div>{requestRegistory()}</div>;
+
+    case RenderingStates.TRANSACTION:
+      return <div>{transaction()}</div>;
+
+    case RenderingStates.HOME:
+      return <div>{home()}</div>;
+  }
 }
