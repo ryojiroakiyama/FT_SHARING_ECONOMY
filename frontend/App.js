@@ -39,9 +39,6 @@ export default function App() {
 
   const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
 
-
-  //TODO: いらないstateを削除
-
   // bikesの各要素のフィールドと各属性の初期値を定義します.
   // 各属性はログインアカウントと連携した情報になります.
   // available:  ログインアカウントはバイクを使用可能か否か
@@ -252,22 +249,34 @@ export default function App() {
     );
   }
 
+  const header = () => {
+    return (
+      <h1>
+        Hello {window.accountId} !
+      </h1>);
+  }
+
+  const transaction = () => {
+    return (
+      <div>
+        {signOutButton()}
+        {unregisterButton()}
+        {header()}
+        <main>
+          <p> in process... </p>
+        </main>
+      </div>
+    )
+  }
+
   const home = () => {
     return (
       <div>
         {signOutButton()}
         {unregisterButton()}
+        {header()}
         <main>
-          <h1>
-            Hello
-            {
-              " " /* React trims whitespace around tags; insert literal space character when needed */
-            }
-            {window.accountId} !
-          </h1>
-          {renderingState === RenderingStates.TRANSACTION ? (
-            <p> in process... </p>
-          ) : (
+          {
             bikes.map((bike, index) => {
               return (
                 <div style={{ display: "flex" }}>
@@ -296,7 +305,7 @@ export default function App() {
                 </div>
               );
             })
-          )}
+          }
           <button onClick={() => getThenSetBalance(window.accountId)}>
             show my balance
           </button>
@@ -382,6 +391,9 @@ export default function App() {
 
     case RenderingStates.REGISTORY:
         return <div>{requestRegistory()}</div>;
+
+    case RenderingStates.TRANSACTION:
+        return <div>{transaction()}</div>;
 
     case RenderingStates.HOME:
         return <div>{home()}</div>;
