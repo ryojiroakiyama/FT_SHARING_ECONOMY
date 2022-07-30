@@ -242,6 +242,11 @@ mod tests {
         for i in 0..init_num {
             assert!(contract.is_available(i))
         }
+        assert_eq!(contract.amount_to_use_bike().0, AMOUNT_TO_USE_BIKE);
+        assert_eq!(
+            contract.amount_reward_for_inspections().0,
+            AMOUNT_REWARD_FOR_INSPECTIONS
+        );
     }
 
     // use_bike(), who_is_using()のテスト
