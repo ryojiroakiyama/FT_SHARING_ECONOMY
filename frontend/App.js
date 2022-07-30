@@ -23,9 +23,8 @@ import {
 } from "./assets/js/near/utils";
 
 export default function App() {
-
   const [amountToUseBike, setAmountToUseBike] = useState(0);
-  
+
   const [allBikeInfo, setAllBikeInfo] = useState([]);
 
   const [toShowBalance, setToShowBalance] = useState(false);
@@ -36,7 +35,7 @@ export default function App() {
     REGISTORY: "registory",
     HOME: "home",
     TRANSACTION: "transaction",
-  }
+  };
   const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
 
   /**
@@ -118,19 +117,18 @@ export default function App() {
   // 初回レンダリング時の処理.
   // サイン後にもブラウザのページがリロードされるので, この内容が実行されます.
   useEffect(() => {
-    
     const getAmountToUseBike = async () => {
       const amount = await amount_to_use_bike();
-      setAmountToUseBike(BigInt(amount))
-    }
-    
+      setAmountToUseBike(BigInt(amount));
+    };
+
     const checkUserRegistory = async (account_id) => {
       const is_registered = await isRegistered(account_id);
       if (!is_registered) {
         setRenderingState(RenderingStates.REGISTORY);
       }
     };
-    
+
     createAllBikeInfo();
     getAmountToUseBike();
 
@@ -149,7 +147,7 @@ export default function App() {
    */
   const registerThenTransferFt = async () => {
     try {
-      await storage_deposit().then((value) => {
+      await storage_deposit().then(async (value) => {
         console.log("Result of storage_deposit: ", value);
         await transfer_ft_to_new_user(window.accountId);
       });
@@ -165,7 +163,7 @@ export default function App() {
    */
   const trasferftToUseBike = async (index) => {
     console.log("Transfer ft to use bike");
-  
+
     // 不要なトランザクションを避けるためにユーザの残高を確認
     const balance = await ft_balance_of(window.accountId);
     if (balance < amountToUseBike) {
@@ -226,47 +224,50 @@ export default function App() {
     return (
       <button className="link" style={{ float: "right" }} onClick={logout}>
         Sign out
-      </button>)
-  }
+      </button>
+    );
+  };
 
   const unregisterButton = () => {
     return (
-      <button className="link" style={{ float: "right" }} onClick={storage_unregister}>
+      <button
+        className="link"
+        style={{ float: "right" }}
+        onClick={storage_unregister}
+      >
         Unregister
-      </button>)
-  }
+      </button>
+    );
+  };
 
   const requireSignIn = () => {
     return (
       <div>
-      <main>
-        <p style={{ textAlign: "center", marginTop: "2.5em" }}>
-          <button onClick={login}>Sign in</button>
-        </p>
-      </main>
+        <main>
+          <p style={{ textAlign: "center", marginTop: "2.5em" }}>
+            <button onClick={login}>Sign in</button>
+          </p>
+        </main>
       </div>
     );
-  }
+  };
 
   const requestRegistory = () => {
     return (
       <div>
         {signOutButton()}
-      <main>
-        <p style={{ textAlign: "center", marginTop: "2.5em" }}>
-          <button onClick={registerThenTransferFt}>storage deposit</button>
-        </p>
-      </main>
+        <main>
+          <p style={{ textAlign: "center", marginTop: "2.5em" }}>
+            <button onClick={registerThenTransferFt}>storage deposit</button>
+          </p>
+        </main>
       </div>
     );
-  }
+  };
 
   const header = () => {
-    return (
-      <h1>
-        Hello {window.accountId} !
-      </h1>);
-  }
+    return <h1>Hello {window.accountId} !</h1>;
+  };
 
   const transaction = () => {
     return (
@@ -278,8 +279,8 @@ export default function App() {
           <p> in process... </p>
         </main>
       </div>
-    )
-  }
+    );
+  };
 
   const home = () => {
     return (
@@ -288,36 +289,34 @@ export default function App() {
         {unregisterButton()}
         {header()}
         <main>
-          {
-            allBikeInfo.map((bike, index) => {
-              return (
-                <div style={{ display: "flex" }}>
-                  {index}: bike
-                  <button
-                    disabled={!bike.available}
-                    onClick={() => trasferftToUseBike(index)}
-                    style={{ borderRadius: "5px 5px 5px 5px" }}
-                  >
-                    use
-                  </button>
-                  <button
-                    disabled={!bike.available}
-                    onClick={() => inspectBikeThenUpdateBikes(index)}
-                    style={{ borderRadius: "5px 5px 5px 5px" }}
-                  >
-                    inspect
-                  </button>
-                  <button
-                    disabled={!bike.in_use && !bike.inspection}
-                    onClick={() => returnBikeThenUpdateBikes(index)}
-                    style={{ borderRadius: "5px 5px 5px 5px" }}
-                  >
-                    return
-                  </button>
-                </div>
-              );
-            })
-          }
+          {allBikeInfo.map((bike, index) => {
+            return (
+              <div style={{ display: "flex" }}>
+                {index}: bike
+                <button
+                  disabled={!bike.available}
+                  onClick={() => trasferftToUseBike(index)}
+                  style={{ borderRadius: "5px 5px 5px 5px" }}
+                >
+                  use
+                </button>
+                <button
+                  disabled={!bike.available}
+                  onClick={() => inspectBikeThenUpdateBikes(index)}
+                  style={{ borderRadius: "5px 5px 5px 5px" }}
+                >
+                  inspect
+                </button>
+                <button
+                  disabled={!bike.in_use && !bike.inspection}
+                  onClick={() => returnBikeThenUpdateBikes(index)}
+                  style={{ borderRadius: "5px 5px 5px 5px" }}
+                >
+                  return
+                </button>
+              </div>
+            );
+          })}
           <button onClick={() => getBalace(window.accountId)}>
             show my balance
           </button>
@@ -388,26 +387,28 @@ export default function App() {
               </label>
               <div style={{ display: "flex" }}>
                 <input autoComplete="off" id="account" style={{ flex: 1 }} />
-                <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
+                <button style={{ borderRadius: "0 5px 5px 0" }}>
+                  transfer
+                </button>
               </div>
             </fieldset>
           </form>
         </main>
       </div>
     );
-  }
+  };
 
   switch (renderingState) {
     case RenderingStates.SIGNIN:
-        return <div>{requireSignIn()}</div>;
+      return <div>{requireSignIn()}</div>;
 
     case RenderingStates.REGISTORY:
-        return <div>{requestRegistory()}</div>;
+      return <div>{requestRegistory()}</div>;
 
     case RenderingStates.TRANSACTION:
-        return <div>{transaction()}</div>;
+      return <div>{transaction()}</div>;
 
     case RenderingStates.HOME:
-        return <div>{home()}</div>;
+      return <div>{home()}</div>;
   }
 }
