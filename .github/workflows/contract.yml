@@ -1,0 +1,26 @@
+name: contract test
+
+on: [pull_request]
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -y --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+      - run: rustup target add wasm32-unknown-unknown
+      - uses: actions/checkout@v3
+      - name: unit_test
+        run: |
+          npm run build:contract
+          npm run test:unit
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -y --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+      - run: rustup target add wasm32-unknown-unknown
+      - uses: actions/checkout@v3
+      - name: integration_test
+        run: |
+          npm run build:contract
+          npm run test:integration:rs
