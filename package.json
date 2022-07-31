@@ -4,7 +4,7 @@
   "license": "(MIT AND Apache-2.0)",
   "scripts": {
     "build": "npm run build:contract && npm run build:web",
-      "build:contract": "cd contract && rustup target add wasm32-unknown-unknown && cargo build --all --target wasm32-unknown-unknown --release && cp ./target/wasm32-unknown-unknown/release/ft_sharing_economy.wasm ../out/main.wasm",
+      "build:contract": "cd contract && rustup target add wasm32-unknown-unknown && cargo build --all --target wasm32-unknown-unknown --release && mkdir -p out && cp ./target/wasm32-unknown-unknown/release/ft_sharing_economy.wasm ../out/main.wasm",
       "build:web": "parcel build frontend/index.html --public-url ./",
     "deploy": "npm run build:contract && near dev-deploy --initFunction 'new' --initArgs '{\"num_of_bikes\": 5}'",
     "open": "env-cmd -f ./neardev/dev-account.env parcel frontend/index.html --open",
