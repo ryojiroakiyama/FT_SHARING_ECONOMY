@@ -1,4 +1,5 @@
-const BIKE_CONTRACT_NAME = process.env.CONTRACT_NAME || "new-awesome-project";
+const BIKE_CONTRACT_NAME =
+  process.env.CONTRACT_NAME || "sub.bike_share.testnet";
 // my_ftに関しては簡単のために固定で用意
 const FT_CONTRACT_NAME = "my_ft.testnet";
 
