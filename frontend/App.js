@@ -320,6 +320,7 @@ export default function App() {
           <button onClick={() => getBalace(window.accountId)}>
             show my balance
           </button>
+          {/*TODO: configからBIKE_CONTRACT_NAMEでとってくる*/}
           <button onClick={() => getBalace(process.env.CONTRACT_NAME)}>
             ft_balance_of_bike_contract
           </button>
