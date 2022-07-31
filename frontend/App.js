@@ -22,6 +22,8 @@ import {
   amount_to_use_bike,
 } from "./assets/js/near/utils";
 
+//TODO: utilsの方がまだ30を変換できてない
+
 export default function App() {
   const [amountToUseBike, setAmountToUseBike] = useState(0);
 
