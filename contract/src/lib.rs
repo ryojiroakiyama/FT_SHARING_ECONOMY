@@ -14,8 +14,6 @@ trait FungibleToken {
     fn ft_transfer(&mut self, receiver_id: String, amount: String, memo: Option<String>);
 }
 
-// TODO: github action
-
 // Bikeの状態をenumで管理します.
 // enumでの管理: 状態遷移が明瞭, かつ必ずこの内のどれかの状態であるという保証ができる利点があると理解
 #[derive(BorshDeserialize, BorshSerialize)]

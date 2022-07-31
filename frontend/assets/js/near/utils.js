@@ -164,11 +164,11 @@ export async function storage_unregister() {
   return response;
 }
 
-export async function ft_transfer(receiver_id) {
+export async function ft_transfer(receiver_id, amount) {
   let response = await window.ftContract.ft_transfer(
     {
       receiver_id: receiver_id,
-      amount: "30",
+      amount: amount,
     },
     "300000000000000",
     "1"
@@ -176,11 +176,11 @@ export async function ft_transfer(receiver_id) {
   return response;
 }
 
-export async function ft_transfer_call(index) {
+export async function ft_transfer_call(index, amount) {
   let response = await window.ftContract.ft_transfer_call(
     {
       receiver_id: nearConfig.bikeContractName,
-      amount: "30",
+      amount: amount,
       msg: index.toString(),
     },
     "300000000000000",
