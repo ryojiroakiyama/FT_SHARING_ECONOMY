@@ -170,7 +170,7 @@ export default function App() {
       alert(amountToUseBike + "ft is required to use the bike");
     } else {
       try {
-        ft_transfer_call(index);
+        ft_transfer_call(index, amountToUseBike.toString());
       } catch (e) {
         alert(e);
       }
@@ -367,7 +367,10 @@ export default function App() {
               const account_to_transfer = account.value;
               fieldset.disabled = true;
               try {
-                await ft_transfer(account_to_transfer);
+                await ft_transfer(
+                  account_to_transfer,
+                  amountToUseBike.toString()
+                );
               } catch (e) {
                 alert(e);
               }
@@ -383,7 +386,7 @@ export default function App() {
                   marginBottom: "0.5em",
                 }}
               >
-                type account to transfer 30 ft
+                type account to transfer {amountToUseBike} ft
               </label>
               <div style={{ display: "flex" }}>
                 <input autoComplete="off" id="account" style={{ flex: 1 }} />
