@@ -292,7 +292,7 @@ export default function App() {
           {allBikeInfo.map((bike, index) => {
             return (
               <div style={{ display: "flex" }}>
-                {index}: bike
+                bike: {index}
                 <button
                   disabled={!bike.available}
                   onClick={() => trasferftToUseBike(index)}
@@ -386,7 +386,7 @@ export default function App() {
                   marginBottom: "0.5em",
                 }}
               >
-                type account to transfer {amountToUseBike} ft
+                type account to transfer {amountToUseBike.toString()} ft
               </label>
               <div style={{ display: "flex" }}>
                 <input autoComplete="off" id="account" style={{ flex: 1 }} />
