@@ -8,6 +8,7 @@ use near_sdk::{
 const FT_CONTRACT_ACCOUNT: &str = "my_ft.testnet";
 const AMOUNT_TO_USE_BIKE: u128 = 30;
 const AMOUNT_REWARD_FOR_INSPECTIONS: u128 = 15;
+const AMOUNT_GIFT_FOR_NEW_USER: u128 = 30;
 
 #[ext_contract(ext_ft)]
 trait FungibleToken {
@@ -54,6 +55,7 @@ impl Contract {
         self.bikes.len()
     }
 
+    // viewメソッドにするためには&selfを明記します.
     pub fn amount_to_use_bike(&self) -> U128 {
         json_types::U128::from(AMOUNT_TO_USE_BIKE)
     }
@@ -83,12 +85,18 @@ impl Contract {
         }
     }
 
-    // 新しいユーザへ30ft送信します.
-    pub fn transfer_ft_to_new_user(new_user_id: AccountId) {
-        Self::cross_contract_call_transfer(new_user_id.to_string(), AMOUNT_TO_USE_BIKE.to_string());
+    // cross contract callを呼び出し, 新規ユーザへftを送信します.
+    // 返り値にPromiseを取ると, 一連のトランザクションの終了までこのメソッドは返さないためクロスコントラクトコール内で起きたエラーやパニックを拾うことができます.
+    // 返り値を省略すると関数呼び出しの直後にこのメソッドは返すため, その後の関数が失敗した場合もこのメソッド自体は成功したと見なされます.
+    pub fn transfer_ft_to_new_user(new_user_id: AccountId) -> Promise {
+        Self::cross_contract_call_transfer(
+            new_user_id.to_string(),
+            AMOUNT_GIFT_FOR_NEW_USER.to_string(),
+        )
     }
 
-    // cross contract callを利用してreceiver_idへamount分ftを送信します.
+    // cross contract call
+    // receiver_idへamount分ftを送信します.
     fn cross_contract_call_transfer(receiver_id: String, amount: String) -> Promise {
         let contract_id = FT_CONTRACT_ACCOUNT.parse().unwrap();
 
@@ -105,36 +113,38 @@ impl Contract {
             .ft_transfer(receiver_id, amount, None)
     }
 
-    // FTコントラクトのft_transfer_call()が呼び出された際に実行するメソッドです.
-    // ユーザがft_transfer_callを使用して30ftをこのコントラクトへ送信 -> ユーザによってバイクを使用中に変更.
-    // 30ftの受信を確認して, use_bikeメソッドを呼び出しバイクを使用中に変更します.
+    // ユーザがftコントラクトのft_transfer_call()を呼び出した際に, ft_transfer_call()によって実行されるメソッドです.
     pub fn ft_on_transfer(
         &mut self,
         sender_id: String,
         amount: String,
         msg: String,
     ) -> PromiseOrValue<U128> {
+        // バイクを使用するのに必要なftが送信されたかの確認.
         assert_eq!(
             amount,
             AMOUNT_TO_USE_BIKE.to_string(),
             "Require {} ft to use the bike",
             AMOUNT_TO_USE_BIKE.to_string()
         );
+
         log!(
             "in ft_on_transfer: sender:{}, amount:{}, msg:{}",
             sender_id,
             amount,
             msg
         );
+
+        // bikeコントラクトへftを送信したユーザ(ft_transfer_call()を呼び出したユーザ)によってバイクを使用中に変更
         self.use_bike(msg.parse().unwrap());
         // 受信したFTは全て受け取るので0を返却.
         PromiseOrValue::Value(U128::from(0))
     }
 
     // バイク 使用可 -> 使用中
-    // ft_on_transferによって呼び出されます.
+    // ft_on_transferで使用されます.
     fn use_bike(&mut self, index: usize) {
-        // env::signer_account_id(): FTコントラクトのft_transfer_call()を呼び出しているアカウントを取得
+        // env::signer_account_id(): ftコントラクトのft_transfer_call()を呼び出しているアカウントを取得
         let signer_id = env::signer_account_id();
         log!("{} uses bike", &signer_id);
         match &self.bikes[index] {
@@ -176,9 +186,9 @@ impl Contract {
         };
     }
 
-    // FTコントラクトのft_transferメソッドを呼び出し(cross contract call),
+    // ftコントラクトのft_transferメソッドを呼び出し(cross contract call),
     // 点検をしてくれたユーザのアカウントへ報酬として15FTを送信します.
-    pub fn return_inspected_bike(index: usize) {
+    pub fn return_inspected_bike(index: usize) -> Promise {
         // callback関数としてバイクを返却するcallback_return_bikeメソッドを呼び出します.
         Self::cross_contract_call_transfer(
             env::predecessor_account_id().to_string(),
@@ -188,11 +198,13 @@ impl Contract {
             Self::ext(env::current_account_id())
                 .with_static_gas(Gas(3_000_000_000_000))
                 .callback_return_bike(index),
-        );
+        )
     }
 
     // callback
     // cross_contract_call_reward_to_inspectorメソッドの実行後に実行するメソッドを定義
+    // private: predecessor(このメソッドを呼び出しているアカウント)とcurrent_account(このコントラクトのアカウント)が同じことをチェックするマクロです.
+    //          callbackの場合, コントラクトが自身のメソッドを呼び出すことを期待しています.
     #[private]
     pub fn callback_return_bike(&mut self, index: usize) {
         assert_eq!(env::promise_results_count(), 1, "This is a callback method");
