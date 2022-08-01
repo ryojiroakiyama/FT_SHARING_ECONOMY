@@ -291,8 +291,9 @@ export default function App() {
         <main>
           {allBikeInfo.map((bike, index) => {
             return (
-              <div style={{ display: "flex" }}>
-                bike: {index}
+              <div class="bike" style={{ display: "flex" }}>
+                <img src={require("./assets/img/bike.png")} />
+                <div class="bike_index">{index}</div>
                 <button
                   disabled={!bike.available}
                   onClick={() => trasferftToUseBike(index)}
