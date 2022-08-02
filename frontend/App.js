@@ -261,6 +261,12 @@ export default function App() {
     return (
       <div>
         {signOutButton()}
+        <div style={{ textAlign: "center" }}>
+          <h5>
+            Storage registration in ft contract is required before using the
+            bike app
+          </h5>
+        </div>
         <main>
           <p style={{ textAlign: "center", marginTop: "2.5em" }}>
             <button onClick={registerThenTransferFt}>storage deposit</button>
