@@ -134,7 +134,8 @@ li {
 }
 
 .bike {
-  margin: 20px;
+  margin: 0 auto;
+  margin-bottom: 20px;
   padding: 10px;
   border-radius: 30px;
   background-color:gainsboro;
