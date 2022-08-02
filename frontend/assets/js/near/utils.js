@@ -146,13 +146,10 @@ export async function storage_balance_of(account_id) {
   return balance;
 }
 
-// 関数呼び出しの際に必要なガス量がデフォルト値を超える場合, max値を指定することが可能です.
-// デフォルト値 https://github.com/near/near-api-js/blob/336bdf51311b75d86f5080d7918848ae7d774b72/src/account.ts#L35
-// ガス量はガスunits, maxは3000...? https://docs.near.org/concepts/basics/transactions/gas#some-closing-thoughts-from-the-whitepaper
 export async function storage_deposit() {
   let response = await window.ftContract.storage_deposit(
     {}, // 引数の省略: このメソッドを呼び出しているアカウントを登録
-    "300000000000000", // ガス量の制限
+    "300000000000000", // ガスの制限
     "1250000000000000000000" // デポジットの制限 (in yoctoNEAR)
   );
   return response;
