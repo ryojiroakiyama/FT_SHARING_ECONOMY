@@ -77,7 +77,7 @@ button.link {
 [disabled] button, button[disabled] {
   box-shadow: none;
   background-color: var(--light-gray);
-  color: gray;
+  color: rgb(82, 81, 81);
   cursor: not-allowed;
   transform: none;
 }
@@ -106,7 +106,7 @@ button.link {
 
 fieldset {
   border: none;
-  padding: 2em 0;
+  padding: 0;
 }
 
 input {
@@ -134,8 +134,7 @@ li {
 }
 
 .bike {
-  margin: 0 auto;
-  margin-bottom: 20px;
+  margin: 20 auto;
   padding: 10px;
   border-radius: 30px;
   background-color:gainsboro;
@@ -160,3 +159,21 @@ li {
   background-color: steelblue;
   border-radius: 5px;
 }
+
+.balance_content {
+  margin: 10 auto;
+  border-radius: 10px;
+  background-color:gainsboro;
+  width: 370px;
+}
+
+.balance_content button {
+  display: block;
+  background-color: darkgreen;
+}
+
+.balance_content button, fieldset {
+  width: 100%;
+}
+
+

@@ -322,50 +322,51 @@ export default function App() {
 
   const checkBalance = () => {
     return (
-      <div>
-        <button onClick={() => getBalaceThenSet(window.accountId)}>
-          show my balance
+      <div class="balance_content">
+        <button
+          style={{ border: "solid" }}
+          onClick={() => getBalaceThenSet(window.accountId)}
+        >
+          check my balance
         </button>
         <button
           onClick={() => getBalaceThenSet(window.bikeContract.contractId)}
         >
-          show bike_contract's balance
+          check contract's balance
         </button>
+        <span>or</span>
         <form
           onSubmit={async (event) => {
             event.preventDefault();
             const { fieldset, account } = event.target.elements;
             const account_to_check = account.value;
-            fieldset.disabled = true;
-            try {
-              await getBalaceThenSet(account_to_check);
-            } catch (e) {
-              alert(e);
+            if (account_to_check != "") {
+              fieldset.disabled = true;
+              try {
+                await getBalaceThenSet(account_to_check);
+              } catch (e) {
+                alert(e);
+              }
+              fieldset.disabled = false;
             }
-            fieldset.disabled = false;
           }}
         >
           <fieldset id="fieldset">
-            <label
-              htmlFor="account"
-              style={{
-                display: "block",
-                color: "var(--gray)",
-                marginBottom: "0.5em",
-              }}
-            >
-              type account to check balance
-            </label>
             <div style={{ display: "flex" }}>
-              <input autoComplete="off" id="account" style={{ flex: 1 }} />
+              <input autoComplete="off" id="account" placeholder="account id" />
               <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
             </div>
           </fieldset>
         </form>
         {toShowBalance && (
-          <p>
-            {balanceInfo.account_id}'s balance: {balanceInfo.balance}
-          </p>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            {balanceInfo.balance}
+          </div>
         )}
       </div>
     );
