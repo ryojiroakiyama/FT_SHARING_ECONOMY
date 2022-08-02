@@ -138,15 +138,24 @@ li {
   padding: 10px;
   border-radius: 30px;
   background-color:gainsboro;
+  width: 540px;
 }
 
-.bike_index{
-  width: 50px;
+.bike_img {
+  margin-top: 20px;
+  margin-left: 10px;
+}
+
+.bike_index {
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 30px;
 }
 
 .bike button{
   margin: 20px;
-  width: 110px;
+  width: 100px;
   height: 50px;
   background-color: steelblue;
+  border-radius: 5px;
 }

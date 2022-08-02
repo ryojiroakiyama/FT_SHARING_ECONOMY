@@ -38,6 +38,8 @@ export default function App() {
   };
   const [renderingState, setRenderingState] = useState(RenderingStates.HOME);
 
+  const bikeImg = require("./assets/img/bike.png");
+
   /**
    * bikeInfoオブジェクトを定義します.
    * allBikeInfoはbikeInfoオブジェクトの配列となります.
@@ -292,26 +294,25 @@ export default function App() {
           {allBikeInfo.map((bike, index) => {
             return (
               <div class="bike" style={{ display: "flex" }}>
-                <img src={require("./assets/img/bike.png")} />
-                <div class="bike_index">{index}</div>
+                <div class="bike_img">
+                  <img src={bikeImg} />
+                </div>
+                <div class="bike_index">: {index}</div>
                 <button
                   disabled={!bike.available}
                   onClick={() => trasferftToUseBike(index)}
-                  style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   use
                 </button>
                 <button
                   disabled={!bike.available}
                   onClick={() => inspectBikeThenUpdateInfo(index)}
-                  style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   inspect
                 </button>
                 <button
                   disabled={!bike.in_use && !bike.inspection}
                   onClick={() => returnBikeThenUpdateInfo(index)}
-                  style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   return
                 </button>
