@@ -149,8 +149,8 @@ export async function storage_balance_of(account_id) {
 export async function storage_deposit() {
   let response = await window.ftContract.storage_deposit(
     {}, // 引数の省略: このメソッドを呼び出しているアカウントを登録
-    "300000000000000", // ガスの制限
-    "1250000000000000000000" // デポジットの制限 (in yoctoNEAR)
+    "300000000000000", // ガスの制限(in gas units)
+    "1250000000000000000000" // デポジット (in yoctoNEAR)
   );
   return response;
 }
