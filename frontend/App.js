@@ -323,13 +323,11 @@ export default function App() {
   const checkBalance = () => {
     return (
       <div class="balance_content">
-        <button
-          style={{ border: "solid" }}
-          onClick={() => getBalaceThenSet(window.accountId)}
-        >
+        <button onClick={() => getBalaceThenSet(window.accountId)}>
           check my balance
         </button>
         <button
+          style={{ marginTop: "0.1em" }}
           onClick={() => getBalaceThenSet(window.bikeContract.contractId)}
         >
           check contract's balance
@@ -363,6 +361,7 @@ export default function App() {
             style={{
               display: "flex",
               justifyContent: "center",
+              marginTop: "0.5em",
             }}
           >
             balance: {balanceInfo.balance}

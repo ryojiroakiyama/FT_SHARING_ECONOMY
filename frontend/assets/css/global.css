@@ -164,7 +164,8 @@ li {
   margin: 10 auto;
   border-radius: 10px;
   background-color:gainsboro;
-  width: 370px;
+  width: 400px;
+  height: 210px;
 }
 
 .balance_content button {
