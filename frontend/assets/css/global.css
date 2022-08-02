@@ -169,11 +169,9 @@ li {
 
 .balance_content button {
   display: block;
-  background-color: darkgreen;
+  background-color:teal;
 }
 
 .balance_content button, fieldset {
   width: 100%;
 }
-
-

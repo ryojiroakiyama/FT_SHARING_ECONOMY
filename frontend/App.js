@@ -365,7 +365,7 @@ export default function App() {
               justifyContent: "center",
             }}
           >
-            {balanceInfo.balance}
+            balance: {balanceInfo.balance}
           </div>
         )}
       </div>
@@ -378,7 +378,6 @@ export default function App() {
         <form
           onSubmit={async (event) => {
             event.preventDefault();
-            // get elements from the form using their id attribute
             const { fieldset, account } = event.target.elements;
             const account_to_transfer = account.value;
             fieldset.disabled = true;
@@ -400,12 +399,18 @@ export default function App() {
                 display: "block",
                 color: "var(--gray)",
                 marginBottom: "0.5em",
+                marginTop: "1em",
               }}
             >
-              type account to transfer {amountToUseBike.toString()} ft
+              give someone {amountToUseBike.toString()} ft
             </label>
             <div style={{ display: "flex" }}>
-              <input autoComplete="off" id="account" style={{ flex: 1 }} />
+              <input
+                autoComplete="off"
+                id="account"
+                style={{ flex: 1 }}
+                placeholder="account id"
+              />
               <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
             </div>
           </fieldset>
