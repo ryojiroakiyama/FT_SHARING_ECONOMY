@@ -157,7 +157,7 @@ export async function storage_deposit() {
 
 export async function storage_unregister() {
   let response = await window.ftContract.storage_unregister(
-    { force: true }, // アカウントの情報を無視して登録を解除する, 所持しているftはバーンされる
+    { force: true }, // アカウントの情報に関わらず登録を解除する, 所持しているftはバーンされる
     "300000000000000",
     "1"
   );
