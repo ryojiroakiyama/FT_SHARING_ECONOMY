@@ -180,7 +180,7 @@ export default function App() {
   };
 
   /**
-   * バイクを点検, allBikeInfoをアップデート
+   * バイクを点検, allBikeInfoをアップデートします.
    */
   const inspectBikeThenUpdateInfo = async (index) => {
     console.log("Inspect bike");
@@ -197,7 +197,7 @@ export default function App() {
   };
 
   /**
-   * バイクを返却, allBikeInfoをアップデート
+   * バイクを返却, allBikeInfoをアップデートします.
    */
   const returnBikeThenUpdateInfo = async (index) => {
     console.log("Return bike");
@@ -213,7 +213,10 @@ export default function App() {
     setRenderingState(RenderingStates.HOME);
   };
 
-  const getBalace = async (account_id) => {
+  /**
+   * 指定されたaccount_idの残高を取得し, 情報をbalanceInfoにセットします.
+   */
+  const getBalaceThenSet = async (account_id) => {
     let balance_info = await initialBalanceInfo();
     const balance = await ft_balance_of(account_id);
     balance_info.account_id = account_id;
@@ -274,12 +277,138 @@ export default function App() {
   const transaction = () => {
     return (
       <div>
-        {signOutButton()}
-        {unregisterButton()}
         {header()}
         <main>
           <p> in process... </p>
         </main>
+      </div>
+    );
+  };
+
+  const bikeContents = () => {
+    return (
+      <div>
+        {allBikeInfo.map((bike, index) => {
+          return (
+            <div class="bike" style={{ display: "flex" }}>
+              <div class="bike_img">
+                <img src={bikeImg} />
+              </div>
+              <div class="bike_index">: {index}</div>
+              <button
+                disabled={!bike.available}
+                onClick={() => trasferftToUseBike(index)}
+              >
+                use
+              </button>
+              <button
+                disabled={!bike.available}
+                onClick={() => inspectBikeThenUpdateInfo(index)}
+              >
+                inspect
+              </button>
+              <button
+                disabled={!bike.in_use && !bike.inspection}
+                onClick={() => returnBikeThenUpdateInfo(index)}
+              >
+                return
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const checkBalance = () => {
+    return (
+      <div>
+        <button onClick={() => getBalaceThenSet(window.accountId)}>
+          show my balance
+        </button>
+        <button
+          onClick={() => getBalaceThenSet(window.bikeContract.contractId)}
+        >
+          show bike_contract's balance
+        </button>
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const { fieldset, account } = event.target.elements;
+            const account_to_check = account.value;
+            fieldset.disabled = true;
+            try {
+              await getBalaceThenSet(account_to_check);
+            } catch (e) {
+              alert(e);
+            }
+            fieldset.disabled = false;
+          }}
+        >
+          <fieldset id="fieldset">
+            <label
+              htmlFor="account"
+              style={{
+                display: "block",
+                color: "var(--gray)",
+                marginBottom: "0.5em",
+              }}
+            >
+              type account to check balance
+            </label>
+            <div style={{ display: "flex" }}>
+              <input autoComplete="off" id="account" style={{ flex: 1 }} />
+              <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
+            </div>
+          </fieldset>
+        </form>
+        {toShowBalance && (
+          <p>
+            {balanceInfo.account_id}'s balance: {balanceInfo.balance}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const transferFt = () => {
+    return (
+      <div>
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            // get elements from the form using their id attribute
+            const { fieldset, account } = event.target.elements;
+            const account_to_transfer = account.value;
+            fieldset.disabled = true;
+            try {
+              await ft_transfer(
+                account_to_transfer,
+                amountToUseBike.toString()
+              );
+            } catch (e) {
+              alert(e);
+            }
+            fieldset.disabled = false;
+          }}
+        >
+          <fieldset id="fieldset">
+            <label
+              htmlFor="account"
+              style={{
+                display: "block",
+                color: "var(--gray)",
+                marginBottom: "0.5em",
+              }}
+            >
+              type account to transfer {amountToUseBike.toString()} ft
+            </label>
+            <div style={{ display: "flex" }}>
+              <input autoComplete="off" id="account" style={{ flex: 1 }} />
+              <button style={{ borderRadius: "0 5px 5px 0" }}>transfer</button>
+            </div>
+          </fieldset>
+        </form>
       </div>
     );
   };
@@ -291,113 +420,9 @@ export default function App() {
         {unregisterButton()}
         {header()}
         <main>
-          {allBikeInfo.map((bike, index) => {
-            return (
-              <div class="bike" style={{ display: "flex" }}>
-                <div class="bike_img">
-                  <img src={bikeImg} />
-                </div>
-                <div class="bike_index">: {index}</div>
-                <button
-                  disabled={!bike.available}
-                  onClick={() => trasferftToUseBike(index)}
-                >
-                  use
-                </button>
-                <button
-                  disabled={!bike.available}
-                  onClick={() => inspectBikeThenUpdateInfo(index)}
-                >
-                  inspect
-                </button>
-                <button
-                  disabled={!bike.in_use && !bike.inspection}
-                  onClick={() => returnBikeThenUpdateInfo(index)}
-                >
-                  return
-                </button>
-              </div>
-            );
-          })}
-          <button onClick={() => getBalace(window.accountId)}>
-            show my balance
-          </button>
-          <button onClick={() => getBalace(window.bikeContract.contractId)}>
-            show bike_contract's balance
-          </button>
-          <form
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const { fieldset, account } = event.target.elements;
-              const account_to_check = account.value;
-              fieldset.disabled = true;
-              try {
-                await getBalace(account_to_check);
-              } catch (e) {
-                alert(e);
-              }
-              fieldset.disabled = false;
-            }}
-          >
-            <fieldset id="fieldset">
-              <label
-                htmlFor="account"
-                style={{
-                  display: "block",
-                  color: "var(--gray)",
-                  marginBottom: "0.5em",
-                }}
-              >
-                type account to check balance
-              </label>
-              <div style={{ display: "flex" }}>
-                <input autoComplete="off" id="account" style={{ flex: 1 }} />
-                <button style={{ borderRadius: "0 5px 5px 0" }}>check</button>
-              </div>
-            </fieldset>
-          </form>
-          {toShowBalance && (
-            <p>
-              {balanceInfo.account_id}'s balance: {balanceInfo.balance}
-            </p>
-          )}
-          <form
-            onSubmit={async (event) => {
-              event.preventDefault();
-              // get elements from the form using their id attribute
-              const { fieldset, account } = event.target.elements;
-              const account_to_transfer = account.value;
-              fieldset.disabled = true;
-              try {
-                await ft_transfer(
-                  account_to_transfer,
-                  amountToUseBike.toString()
-                );
-              } catch (e) {
-                alert(e);
-              }
-              fieldset.disabled = false;
-            }}
-          >
-            <fieldset id="fieldset">
-              <label
-                htmlFor="account"
-                style={{
-                  display: "block",
-                  color: "var(--gray)",
-                  marginBottom: "0.5em",
-                }}
-              >
-                type account to transfer {amountToUseBike.toString()} ft
-              </label>
-              <div style={{ display: "flex" }}>
-                <input autoComplete="off" id="account" style={{ flex: 1 }} />
-                <button style={{ borderRadius: "0 5px 5px 0" }}>
-                  transfer
-                </button>
-              </div>
-            </fieldset>
-          </form>
+          {bikeContents()}
+          {checkBalance()}
+          {transferFt()}
         </main>
       </div>
     );
