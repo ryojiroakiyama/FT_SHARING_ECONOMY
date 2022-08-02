@@ -178,9 +178,9 @@ export default function App() {
   };
 
   /**
-   * バイクを点検, bikesをアップデート
+   * バイクを点検, allBikeInfoをアップデート
    */
-  const inspectBikeThenUpdateBikes = async (index) => {
+  const inspectBikeThenUpdateInfo = async (index) => {
     console.log("Inspect bike");
     setRenderingState(RenderingStates.TRANSACTION);
 
@@ -195,9 +195,9 @@ export default function App() {
   };
 
   /**
-   * バイクを返却, bikesをアップデート
+   * バイクを返却, allBikeInfoをアップデート
    */
-  const returnBikeThenUpdateBikes = async (index) => {
+  const returnBikeThenUpdateInfo = async (index) => {
     console.log("Return bike");
     setRenderingState(RenderingStates.TRANSACTION);
 
@@ -252,7 +252,7 @@ export default function App() {
     );
   };
 
-  const requestRegistory = () => {
+  const requireRegistory = () => {
     return (
       <div>
         {signOutButton()}
@@ -302,14 +302,14 @@ export default function App() {
                 </button>
                 <button
                   disabled={!bike.available}
-                  onClick={() => inspectBikeThenUpdateBikes(index)}
+                  onClick={() => inspectBikeThenUpdateInfo(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   inspect
                 </button>
                 <button
                   disabled={!bike.in_use && !bike.inspection}
-                  onClick={() => returnBikeThenUpdateBikes(index)}
+                  onClick={() => returnBikeThenUpdateInfo(index)}
                   style={{ borderRadius: "5px 5px 5px 5px" }}
                 >
                   return
@@ -320,9 +320,8 @@ export default function App() {
           <button onClick={() => getBalace(window.accountId)}>
             show my balance
           </button>
-          {/*TODO: configからBIKE_CONTRACT_NAMEでとってくる*/}
-          <button onClick={() => getBalace(process.env.CONTRACT_NAME)}>
-            ft_balance_of_bike_contract
+          <button onClick={() => getBalace(window.bikeContract.contractId)}>
+            show bike_contract's balance
           </button>
           <form
             onSubmit={async (event) => {
@@ -407,7 +406,7 @@ export default function App() {
       return <div>{requireSignIn()}</div>;
 
     case RenderingStates.REGISTORY:
-      return <div>{requestRegistory()}</div>;
+      return <div>{requireRegistory()}</div>;
 
     case RenderingStates.TRANSACTION:
       return <div>{transaction()}</div>;

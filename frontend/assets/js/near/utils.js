@@ -117,7 +117,8 @@ export async function transfer_ft_to_new_user(account_id) {
   });
   return response;
 }
-
+//TODO: changemethodへのガス代の制限
+//TODO: integration_testの方もガス代について追加するか
 export async function inspect_bike(index) {
   let response = await window.bikeContract.inspect_bike({
     index: index,
