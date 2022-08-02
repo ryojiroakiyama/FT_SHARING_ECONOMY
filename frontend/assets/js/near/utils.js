@@ -149,15 +149,15 @@ export async function storage_balance_of(account_id) {
 export async function storage_deposit() {
   let response = await window.ftContract.storage_deposit(
     {}, // 引数の省略: このメソッドを呼び出しているアカウントを登録
-    "300000000000000", // ガス代の制限
-    "1250000000000000000000" // デポジットの制限 (in yoctoNEAR)
+    "300000000000000", // ガスの制限(in gas units)
+    "1250000000000000000000" // デポジット (in yoctoNEAR)
   );
   return response;
 }
 
 export async function storage_unregister() {
   let response = await window.ftContract.storage_unregister(
-    { force: true }, // アカウントの情報を無視して登録を解除する, 所持しているftはバーンされる
+    { force: true }, // アカウントの情報に関わらず登録を解除する, 所持しているftはバーンされる
     "300000000000000",
     "1"
   );
