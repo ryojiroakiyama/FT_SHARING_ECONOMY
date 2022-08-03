@@ -1,4 +1,3 @@
-import "regenerator-runtime/runtime";
 import React, { useEffect, useState } from "react";
 
 import "./assets/css/global.css";
@@ -344,15 +343,13 @@ export default function App() {
             event.preventDefault();
             const { fieldset, account } = event.target.elements;
             const account_to_check = account.value;
-            if (account_to_check != "") {
-              fieldset.disabled = true;
-              try {
-                await getBalaceThenSet(account_to_check);
-              } catch (e) {
-                alert(e);
-              }
-              fieldset.disabled = false;
+            fieldset.disabled = true;
+            try {
+              await getBalaceThenSet(account_to_check);
+            } catch (e) {
+              alert(e);
             }
+            fieldset.disabled = false;
           }}
         >
           <fieldset id="fieldset">
