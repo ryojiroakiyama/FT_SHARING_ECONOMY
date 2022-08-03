@@ -30,8 +30,8 @@ export default function App() {
   const [balanceInfo, setBalanceInfo] = useState({});
 
   const RenderingStates = {
-    SIGNIN: "signin",
-    REGISTORY: "registory",
+    SIGN_IN: "sign_in",
+    REGISTRY: "registry",
     HOME: "home",
     TRANSACTION: "transaction",
   };
@@ -123,10 +123,10 @@ export default function App() {
       setAmountToUseBike(BigInt(amount));
     };
 
-    const checkUserRegistory = async (account_id) => {
+    const checkUserRegistry = async (account_id) => {
       const is_registered = await isRegistered(account_id);
       if (!is_registered) {
-        setRenderingState(RenderingStates.REGISTORY);
+        setRenderingState(RenderingStates.REGISTRY);
       }
     };
 
@@ -134,12 +134,12 @@ export default function App() {
     getAmountToUseBike();
 
     // renderingStateを設定します.
-    // ユーザがサインインを済ませていなければSIGNINをセットします.
+    // ユーザがサインインを済ませていなければSIGN_INをセットします.
     // 済ませていれば登録を確認します.
     if (!window.walletConnection.isSignedIn()) {
-      setRenderingState(RenderingStates.SIGNIN);
+      setRenderingState(RenderingStates.SIGN_IN);
     } else {
-      checkUserRegistory(window.accountId);
+      checkUserRegistry(window.accountId);
     }
   }, []);
 
@@ -158,11 +158,11 @@ export default function App() {
   };
 
   /**
-   * ft_trasnfer_callの実行.
+   * ft_transfer_callの実行.
    * bikeコントラクトにft送金+使用するバイクをindexで指定 => bikeコントラクト側で指定バイクの使用処理が実行されます.
    * トランザクションへのサイン後は画面がリロードされます.
    */
-  const trasferftToUseBike = async (index) => {
+  const transferFtToUseBike = async (index) => {
     console.log("Transfer ft to use bike");
 
     // 不要なトランザクションを避けるためにユーザの残高を確認
@@ -215,7 +215,7 @@ export default function App() {
   /**
    * 指定されたaccount_idの残高を取得し, 情報をbalanceInfoにセットします.
    */
-  const getBalaceThenSet = async (account_id) => {
+  const getBalanceThenSet = async (account_id) => {
     let balance_info = await initialBalanceInfo();
     const balance = await ft_balance_of(account_id);
     balance_info.account_id = account_id;
@@ -256,7 +256,7 @@ export default function App() {
     );
   };
 
-  const requireRegistory = () => {
+  const requireRegistry = () => {
     return (
       <div>
         {signOutButton()}
@@ -302,7 +302,7 @@ export default function App() {
               <div class="bike_index">: {index}</div>
               <button
                 disabled={!bike.available}
-                onClick={() => trasferftToUseBike(index)}
+                onClick={() => transferFtToUseBike(index)}
               >
                 use
               </button>
@@ -328,12 +328,12 @@ export default function App() {
   const checkBalance = () => {
     return (
       <div class="balance_content">
-        <button onClick={() => getBalaceThenSet(window.accountId)}>
+        <button onClick={() => getBalanceThenSet(window.accountId)}>
           check my balance
         </button>
         <button
           style={{ marginTop: "0.1em" }}
-          onClick={() => getBalaceThenSet(window.bikeContract.contractId)}
+          onClick={() => getBalanceThenSet(window.bikeContract.contractId)}
         >
           check contract's balance
         </button>
@@ -345,7 +345,7 @@ export default function App() {
             const account_to_check = account.value;
             fieldset.disabled = true;
             try {
-              await getBalaceThenSet(account_to_check);
+              await getBalanceThenSet(account_to_check);
             } catch (e) {
               alert(e);
             }
@@ -360,14 +360,9 @@ export default function App() {
           </fieldset>
         </form>
         {toShowBalance && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              marginTop: "0.5em",
-            }}
-          >
-            balance: {balanceInfo.balance}
+          <div>
+            <p>{balanceInfo.account_id}'s</p>
+            <p>balance: {balanceInfo.balance}</p>
           </div>
         )}
       </div>
@@ -437,11 +432,11 @@ export default function App() {
   };
 
   switch (renderingState) {
-    case RenderingStates.SIGNIN:
+    case RenderingStates.SIGN_IN:
       return <div>{requireSignIn()}</div>;
 
-    case RenderingStates.REGISTORY:
-      return <div>{requireRegistory()}</div>;
+    case RenderingStates.REGISTRY:
+      return <div>{requireRegistry()}</div>;
 
     case RenderingStates.TRANSACTION:
       return <div>{transaction()}</div>;

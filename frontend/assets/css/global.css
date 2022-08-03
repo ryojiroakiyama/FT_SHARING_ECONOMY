@@ -135,10 +135,10 @@ li {
 
 .bike {
   margin: 20 auto;
-  padding: 10px;
+  padding: 5px;
   border-radius: 30px;
   background-color:gainsboro;
-  width: 540px;
+  width: 560px;
 }
 
 .bike_img {
@@ -154,7 +154,7 @@ li {
 
 .bike button{
   margin: 20px;
-  width: 100px;
+  width: 110px;
   height: 50px;
   background-color: steelblue;
   border-radius: 5px;
@@ -174,4 +174,9 @@ li {
 
 .balance_content button, fieldset {
   width: 100%;
+}
+
+.balance_content p {
+  margin: 0 auto;
+  width: 200px;
 }
